@@ -3,6 +3,23 @@
 This gem provides a set of rake tasks to ease the installation and maintenance of a bbl-deployed BOSH director, and a bosh-deployer concourse pipeline.
 
 
+## Requirements
+
+This gem requires:
+
+* `bbl` ~> 3.0.2 (https://github.com/cloudfoundry/bosh-bootloader/releases)
+* `bosh` ~> 2.0 (https://github.com/cloudfoundry/bosh-cli/releases)
+* `terraform` (https://www.terraform.io/downloads.html)
+
+If you're deploying to GCP, this gem also requires:
+
+* `gcloud` (https://cloud.google.com/sdk/downloads)
+
+Finally, it's recommended that you use:
+
+* `direnv` (https://direnv.net/)
+
+
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -18,16 +35,6 @@ And then execute:
 Or install it yourself as:
 
     $ gem install concourse-deployer
-
-This gem also requires:
-
-* `bbl` ~> 3.0.2 (https://github.com/cloudfoundry/bosh-bootloader/releases)
-* `bosh` ~> 2.0 (https://github.com/cloudfoundry/bosh-cli/releases)
-* `terraform` (https://www.terraform.io/downloads.html)
-
-If you're deploying to GCP, this gem also requires:
-
-* `gcloud` (https://cloud.google.com/sdk/downloads)
 
 
 ## Usage
