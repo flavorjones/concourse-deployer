@@ -127,6 +127,15 @@ module Concourse
       important "Please make sure to save '#{GCP_SERVICE_ACCOUNT_FILE}' somewhere private and safe."
     end
 
+    def bbl_gcp_up
+      unless ENV['BBL_GCP_PROJECT_ID']
+        error "Environment variable BBL_GCP_PROJECT_ID is not set. Did you run `rake bbl:gcp:init` and `direnv allow`?"
+      end
+      note "running `bbl up` on GCP ... go get a coffee."
+      note "If you get an error about 'Access Not Configured', follow the URL in the error message and enable API access for your project!"
+      sh "bbl up --iaas gcp"
+    end
+
     def create_tasks!
       namespace "bbl" do
         namespace "gcp" do
@@ -137,6 +146,11 @@ module Concourse
               error "You must specify an existing GCP project id, like `rake #{t.name}[unique-project-name]`"
             end
             bbl_gcp_init gcp_project_id
+          end
+
+          desc "terraform your environment and deploy the bosh director"
+          task "up" do
+            bbl_gcp_up
           end
         end
       end
