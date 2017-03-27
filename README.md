@@ -1,6 +1,6 @@
 # Concourse::Deployer
 
-This gem provides a set of rake tasks to ease the installation and maintenance of a bbl-deployed BOSH director, and a bosh-deployer concourse pipeline.
+This gem provides a set of rake tasks to ease the installation and maintenance of a bbl-deployed bosh director, and a bosh-deployed concourse environment.
 
 
 ## Requirements
