@@ -60,8 +60,8 @@ module Concourse
         message += " [#{default}]" if default
         message += ": "
         print bold, message, reset
-        answer = STDIN.gets.chomp
-        if answer == ""
+        answer = STDIN.gets.chomp.strip
+        if answer.empty?
           return default if default
           error "Please provide an answer.", true
         else
