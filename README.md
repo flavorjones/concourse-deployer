@@ -28,13 +28,7 @@ Add this line to your application's Gemfile:
 gem 'concourse-deployer'
 ```
 
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install concourse-deployer
+And then run `bundle` or else install it directly with `gem install concourse-deployer`.
 
 
 ## Usage
@@ -47,18 +41,16 @@ require "concourse/deployer"
 Concourse::Deployer.new.create_tasks!
 ```
 
-And then execute:
+Available tasks:
 
-    $ rake -T
-
-to see commands that are available.
-
+``` sh
+rake bbl:gcp:init[gcp_project_id]  # initialize bosh-bootloader for GCP
+rake bbl:gcp:up                    # terraform your environment and deploy the bosh director
+```
 
 ### A Note on Security
 
-It's incredibly important that you don't leak your credentials by committing them to a public git repository. This gem will add a set of files containing sensitive credentials to `.gitignore`. However, this means you'll need to find your own way to keep them safe (I recommend a password safe).
-
-__Make sure you run the "init" task for your particular IaaS to add these files to your .gitignore.__
+It's incredibly important that you don't leak your credentials by committing them to a public git repository. This gem will `.gitignore` a set of files that contain sensitive credentials. However, this means you'll need to find your own way to keep them private and safe (I recommend a password vault).
 
 Files it's OK to commit:
 
@@ -92,7 +84,7 @@ $ rake bbl:gcp:up
 
 Go get a coffee. In about 5 minutes, you'll have:
 
-* a terraformed GCP environment in us-east1-b
+* a terraformed GCP environment,
 * with a VM running a bosh director,
 * and a load balancer in front of it, ready for concourse to be installed
 
