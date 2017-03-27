@@ -2,6 +2,8 @@
 
 This gem provides a set of rake tasks to ease the installation and maintenance of a bbl-deployed bosh director, and a bosh-deployed concourse environment.
 
+__NOTE:__ I'm practicing README-driven development, so until I actually cut a release, YMMV.
+
 
 ## Requirements
 
@@ -46,6 +48,17 @@ Available tasks:
 ``` sh
 rake bbl:gcp:init[gcp_project_id]  # initialize bosh-bootloader for GCP
 rake bbl:gcp:up                    # terraform your environment and deploy the bosh director
+rake bosh:cloud-config:download    # download the bosh cloud config to `cloud-config.yml`
+rake bosh:cloud-config:upload      # upload a bosh cloud config from `cloud-config.yml`
+rake bosh:concourse:backup         # backup your concourse database to `concourse.atc.pgdump`
+rake bosh:concourse:restore        # restore your concourse database from `concourse.atc.pgdump`
+rake bosh:deploy                   # deploy concourse
+rake bosh:prepare-manifest         # prepare a bosh manifest for your concourse deployment
+rake bosh:update-director          # upload stemcells and releases to the director
+rake letsencrypt:backup            # backup web:/etc/letsencrypt to local disk
+rake letsencrypt:import            # import letsencrypt keys into `private.yml` from backup
+rake letsencrypt:renew             # renew the certificate
+rake letsencrypt:restore           # restore web:/etc/letsencrypt from backup
 ```
 
 ### A Note on Security
@@ -55,6 +68,7 @@ It's incredibly important that you don't leak your credentials by committing the
 Files it's OK to commit:
 
 * `.envrc`
+* `concourse.yml`
 
 
 ### Deploying to GCP
@@ -73,8 +87,9 @@ This will:
 * create a GCP service account, associate it with your project, and give it the necessary permissions
 * ... and save that GCP service account information in `service-account.key.json`
 
-At this point, if you want to use a region/zone besides us-east1/us-east1-b, you can edit your `.envrc`.
+__NOTE:__ At this point, if you want to use a region/zone besides us-east1/us-east1-b, you can edit your `.envrc`.
 
+__NOTE:__ `service-account.key.json` is sensitive and should NOT be committed to a public repo.
 
 #### Step 2: bbl up
 
@@ -88,7 +103,85 @@ Go get a coffee. In about 5 minutes, you'll have:
 * with a VM running a bosh director,
 * and a load balancer in front of it, ready for concourse to be installed
 
-This task is idempotent! In fact, in the future if you want to upgrade your bosh director (or stemcell), you should re-run this.
+__NOTE:__ This task is idempotent! If you want to upgrade your bosh director (or stemcell) using a future version of bbl, you should re-run this.
+
+
+#### Step 3: prepare a bosh manifest for your concourse deployment
+
+``` sh
+$ rake bosh:prepare-manifest
+```
+
+This will:
+
+* prompt you for some basic information,
+* generate a bosh manifest, `concourse.yml`, to deploy concourse
+* automatically generate all credentials (including key pairs),
+* and save those credentials to `private.yml`.
+
+__NOTE:__ `concourse.yml` can and should be edited by you!
+
+__NOTE:__ `private.yml` is sensitive and should NOT be committed to a public repo.
+
+
+#### Step 4: upload releases and stemcell to the director
+
+``` sh
+$ rake bosh:update-director
+```
+
+This will:
+
+* prompt you to upload to the director the latest bosh releases for concourse and runC
+* prompt you to upload to the director the latest gcp lite stemcell
+
+__NOTE:__ This task is idempotent! If you want to upgrade your releases or stemcell in the future, you should re-run this.
+
+
+#### Step 5: deploy!
+
+``` sh
+$ rake bosh:deploy
+```
+
+This will deploy `concourse.yml` using the credentials set in `private.yml`.
+
+__NOTE:__ This task is idempotent! Yay bosh. Edit `concourse.yml` and re-run this task to update your deployment.
+
+
+### Other Fun Things This Gem Does
+
+#### Backup and restore of your concourse database:
+
+``` sh
+$ rake bosh:concourse:backup
+$ rake bosh:concourse:restore
+```
+
+__NOTE:__ The backup file, `concourse.atc.pgdump`, may contain sensitive data from your concourse pipelines and should NOT be committed to a public git repo.
+
+
+#### Download and Upload a bosh cloud config
+
+Occasionally it's useful to modify the cloud config.
+
+``` sh
+$ rake bosh:cloud-config:download
+$ rake bosh:cloud-config:upload
+```
+
+__NOTE:__ The cloud config file, `cloud-config.yml` does not contain credentials and is OK to commit to a repository if you like.
+
+
+#### Manage SSH keys from letsencrypt
+
+``` sh
+$ rake letsencrypt:backup
+$ rake letsencrypt:restore
+$ rake letsencrypt:import
+$ rake letsencrypt:renew
+```
+
 
 
 ## Contributing

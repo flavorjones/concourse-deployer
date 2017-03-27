@@ -76,7 +76,55 @@ module Concourse
       end
 
       namespace "bosh" do
+        desc "prepare a bosh manifest for your concourse deployment"
+        task "prepare-manifest" do
+        end
 
+        desc "upload stemcells and releases to the director"
+        task "update-director" do
+        end
+
+        desc "deploy concourse"
+        task "deploy" do
+        end
+
+        namespace "concourse" do
+          desc "backup your concourse database to `concourse.atc.pgdump`"
+          task "backup" do
+          end
+
+          desc "restore your concourse database from `concourse.atc.pgdump`"
+          task "restore" do
+          end
+        end
+
+        namespace "cloud-config" do
+          desc "download the bosh cloud config to `cloud-config.yml`"
+          task "download" do
+          end
+
+          desc "upload a bosh cloud config from `cloud-config.yml`"
+          task "upload" do
+          end
+        end
+      end
+
+      namespace "letsencrypt" do
+        desc "backup web:/etc/letsencrypt to local disk"
+        task "backup" do
+        end
+
+        desc "import letsencrypt keys into `private.yml` from backup"
+        task "import" do
+        end
+
+        desc "restore web:/etc/letsencrypt from backup" # TODO check ownership is root root afterwards
+        task "restore" do
+        end
+
+        desc "renew the certificate" # TODO https://certbot.eff.org/#ubuntutrusty-other
+        task "renew" do
+        end
       end
     end
   end
