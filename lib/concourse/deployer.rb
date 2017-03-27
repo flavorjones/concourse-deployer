@@ -9,6 +9,7 @@ module Concourse
     GITIGNORE_FILE           = ".gitignore"
     BBL_STATE_FILE           = "bbl-state.json"
     GCP_SERVICE_ACCOUNT_FILE = "service-account.key.json"
+    ENVRC_FILE               = ".envrc"
 
     def note message
       print bold, green, "NOTE: ", reset, message, "\n"
@@ -32,6 +33,34 @@ module Concourse
       end
       note "adding '#{ignore_entry}' to #{GITIGNORE_FILE}"
       File.open(GITIGNORE_FILE, "a") { |f| f.puts ignore_entry }
+    end
+
+    def ensure_in_envrc entry_key, entry_value
+      entry_match = /^export #{entry_key}=/
+      entry_contents = "export #{entry_key}=#{entry_value}"
+
+      entries = if File.exist?(ENVRC_FILE)
+                  File.read(ENVRC_FILE).split("\n")
+                else
+                  Array.new
+                end
+      found_entry = entries.grep(entry_match).first
+
+      if found_entry.nil?
+        note "adding '#{entry_key}=#{entry_value}' to #{ENVRC_FILE}"
+        File.open(ENVRC_FILE, "a") { |f| f.puts entry_contents }
+      else
+        if found_entry == entry_contents
+          note "found '#{entry_key}=#{entry_value}' already present in #{ENVRC_FILE}"
+          return
+        else
+          note "overwriting '#{entry_key}' entry with '#{entry_value}' in #{ENVRC_FILE}"
+          entries.map! do |jentry|
+            jentry =~ entry_match ? entry_contents : jentry
+          end
+          File.open(ENVRC_FILE, "w") { |f| f.puts entries.join("\n") }
+        end
+      end
     end
 
     def which command
@@ -77,14 +106,18 @@ module Concourse
       return !! (overwrite =~ /^y/i)
     end
 
-    def bbl_gcp_init
+    def bbl_gcp_init project_id
       bbl_init
       ensure_in_gitignore GCP_SERVICE_ACCOUNT_FILE
       unless_which "gcloud", "https://cloud.google.com/sdk/downloads"
 
+      ensure_in_envrc "BBL_GCP_PROJECT_ID", project_id
+      ensure_in_envrc "BBL_GCP_SERVICE_ACCOUNT_KEY", GCP_SERVICE_ACCOUNT_FILE
+      ensure_in_envrc "BBL_GCP_ZONE", "us-east1-b"
+      ensure_in_envrc "BBL_GCP_REGION", "us-east1"
+
       if bbl_gcp_prompt_for_service_account
-        project_id = prompt "GCP project id (needs to have been already created)"
-        service_account_name = prompt "GCP service account name", "concourse-bbl-service-account"
+        service_account_name = "concourse-bbl-service-account"
 
         sh %Q{gcloud --project=#{project_id} iam service-accounts create '#{service_account_name}'}
         sh %Q{gcloud --project=#{project_id} iam service-accounts keys create '#{GCP_SERVICE_ACCOUNT_FILE}' --iam-account '#{service_account_name}@#{project_id}.iam.gserviceaccount.com'}
@@ -98,7 +131,13 @@ module Concourse
       namespace "bbl" do
         namespace "gcp" do
           desc "initialize bosh-bootloader for GCP"
-          task("init") { bbl_gcp_init }
+          task "init", ["gcp_project_id"] do |t, args|
+            gcp_project_id = args["gcp_project_id"]
+            unless gcp_project_id
+              error "You must specify an existing GCP project id, like `rake #{t.name}[unique-project-name]`"
+            end
+            bbl_gcp_init gcp_project_id
+          end
         end
       end
 
