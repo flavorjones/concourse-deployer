@@ -19,6 +19,16 @@ Or install it yourself as:
 
     $ gem install concourse-deployer
 
+This gem also requires:
+
+* `bbl` ~> 3.0.2 (https://github.com/cloudfoundry/bosh-bootloader/releases)
+* `bosh` ~> 2.0 (https://github.com/cloudfoundry/bosh-cli/releases)
+* `terraform` (https://www.terraform.io/downloads.html)
+
+If you're deploying to GCP, this gem also requires:
+
+* `gcloud` (https://cloud.google.com/sdk/downloads)
+
 
 ## Usage
 
@@ -27,7 +37,7 @@ In your Rakefile:
 ``` ruby
 require "concourse/deployer"
 
-Concourse::Deployer.create_tasks!
+Concourse::Deployer.new.create_tasks!
 ```
 
 And then execute:
@@ -35,6 +45,13 @@ And then execute:
     $ rake -T
 
 to see commands that are available.
+
+
+### Security
+
+It's incredibly important that you don't leak your credentials by committing them to a public git repository. This gem will add a set of files containing sensitive credentials to `.gitignore`. However, this means you'll need to find your own way to keep them safe (I recommend a password safe).
+
+__Make sure you run the "init" task for your particular IaaS to add these files to your .gitignore.__
 
 
 ## Contributing

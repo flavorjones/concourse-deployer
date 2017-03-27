@@ -1,5 +1,5 @@
 module Concourse
-  module Deployer
+  class Deployer
     VERSION = "0.1.0"
   end
 end
