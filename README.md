@@ -61,19 +61,28 @@ rake letsencrypt:renew             # renew the certificate
 rake letsencrypt:restore           # restore web:/etc/letsencrypt from backup
 ```
 
-### A Note on Security
+## A Note on Security
 
 It's incredibly important that you don't leak your credentials by committing them to a public git repository. This gem will `.gitignore` a set of files that contain sensitive credentials. However, this means you'll need to find your own way to keep them private and safe (I recommend a password vault).
 
-Files it's OK to commit:
+Files it's OK to commit to a public repo, because they contain no sensitive data:
 
 * `.envrc`
 * `concourse.yml`
+* `cloud-config.yml`
+
+Files it's NOT OK to be public, because they contain sensitive data:
+
+* `service-account.key.json`
+* `bbl-state.json`
+* `private.yml`
+* `concourse.atc.pgdump`
+* `letsencrypt/`
 
 
-### Deploying to GCP
+## Deploying to GCP
 
-#### Step 1: initialize
+### Step 1: initialize
 
 ``` sh
 $ rake bbl:gcp:init[your-unique-gcp-project-name]
@@ -81,32 +90,35 @@ $ rake bbl:gcp:init[your-unique-gcp-project-name]
 
 This will:
 
-* create `.gitignore` entries to prevent sensitive files from being committed
-* check that required dependencies are installed
-* create an `.envrc` file with environment variables for bbl to work with GCP
-* create a GCP service account, associate it with your project, and give it the necessary permissions
-* ... and save that GCP service account information in `service-account.key.json`
+* create `.gitignore` entries to prevent sensitive files from being committed,
+* check that required dependencies are installed,
+* create an `.envrc` file with environment variables for bbl to work with GCP,
+* create a GCP service account, associate it with your project, and give it the necessary permissions,
+* and save that GCP service account information in `service-account.key.json`
 
 __NOTE:__ At this point, if you want to use a region/zone besides us-east1/us-east1-b, you can edit your `.envrc`.
 
 __NOTE:__ `service-account.key.json` is sensitive and should NOT be committed to a public repo.
 
-#### Step 2: bbl up
+### Step 2: bbl up
 
 ``` sh
 $ rake bbl:gcp:up
 ```
 
-Go get a coffee. In about 5 minutes, you'll have:
+Go get a coffee. In about 5 minutes, this will:
 
-* a terraformed GCP environment,
+* terraform a GCP environment,
 * with a VM running a bosh director,
-* and a load balancer in front of it, ready for concourse to be installed
+* put a load balancer in front of it, ready for concourse to be installed,
+* and save your state and credentials into `bbl-state.json`.
 
 __NOTE:__ This task is idempotent! If you want to upgrade your bosh director (or stemcell) using a future version of bbl, you should re-run this.
 
+__NOTE:__ `bbl-state.json` is sensitive and should NOT be committed to a public repo.
 
-#### Step 3: prepare a bosh manifest for your concourse deployment
+
+### Step 3: prepare a bosh manifest for your concourse deployment
 
 ``` sh
 $ rake bosh:prepare-manifest
@@ -124,7 +136,7 @@ __NOTE:__ `concourse.yml` can and should be edited by you!
 __NOTE:__ `private.yml` is sensitive and should NOT be committed to a public repo.
 
 
-#### Step 4: upload releases and stemcell to the director
+### Step 4: upload releases and stemcell to the director
 
 ``` sh
 $ rake bosh:update-director
@@ -138,7 +150,7 @@ This will:
 __NOTE:__ This task is idempotent! If you want to upgrade your releases or stemcell in the future, you should re-run this.
 
 
-#### Step 5: deploy!
+### Step 5: deploy!
 
 ``` sh
 $ rake bosh:deploy
@@ -149,9 +161,9 @@ This will deploy `concourse.yml` using the credentials set in `private.yml`.
 __NOTE:__ This task is idempotent! Yay bosh. Edit `concourse.yml` and re-run this task to update your deployment.
 
 
-### Other Fun Things This Gem Does
+## Other Fun Things This Gem Does
 
-#### Backup and restore of your concourse database:
+### Backup and restore of your concourse database:
 
 ``` sh
 $ rake bosh:concourse:backup
@@ -161,7 +173,7 @@ $ rake bosh:concourse:restore
 __NOTE:__ The backup file, `concourse.atc.pgdump`, may contain sensitive data from your concourse pipelines and should NOT be committed to a public git repo.
 
 
-#### Download and Upload a bosh cloud config
+### Download and Upload a bosh cloud config
 
 Occasionally it's useful to modify the cloud config.
 
@@ -173,7 +185,7 @@ $ rake bosh:cloud-config:upload
 __NOTE:__ The cloud config file, `cloud-config.yml` does not contain credentials and is OK to commit to a repository if you like.
 
 
-#### Manage SSH keys from letsencrypt
+### Manage SSH keys from letsencrypt
 
 ``` sh
 $ rake letsencrypt:backup
