@@ -14,6 +14,10 @@ module Concourse
       print bold, green, "NOTE: ", reset, message, "\n"
     end
 
+    def important message
+      print bold, "NOTE: ", message, reset, "\n"
+    end
+
     def error message, continue=false
       print red, bold, "ERROR: #{message}", reset, "\n"
       exit 1 unless continue
@@ -86,6 +90,8 @@ module Concourse
         sh %Q{gcloud --project=#{project_id} iam service-accounts keys create '#{GCP_SERVICE_ACCOUNT_FILE}' --iam-account '#{service_account_name}@#{project_id}.iam.gserviceaccount.com'}
         sh %Q{gcloud projects add-iam-policy-binding '#{project_id}' --member 'serviceAccount:#{service_account_name}@#{project_id}.iam.gserviceaccount.com' --role 'roles/editor'}
       end
+
+      important "Please make sure to save '#{GCP_SERVICE_ACCOUNT_FILE}' somewhere private and safe."
     end
 
     def create_tasks!
