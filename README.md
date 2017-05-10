@@ -5,6 +5,19 @@ This gem provides a set of rake tasks to ease the installation and maintenance o
 __NOTE:__ I'm practicing README-driven development, so until I actually cut a release, YMMV.
 
 
+## TL;DR
+
+These five commands will give you a full concourse deployment:
+
+``` sh
+rake bbl:gcp:init[your-unique-gcp-project-name]
+rake bbl:gcp:up
+rake bosh:init[your-concourse-url]
+rake bosh:update
+rake bosh:deploy
+```
+
+
 ## Requirements
 
 This gem requires:
@@ -34,20 +47,6 @@ And then run `bundle` or else install it directly with `gem install concourse-de
 
 
 ## Usage
-
-### TL;DR
-
-These five commands will give you a full concourse deployment:
-
-``` sh
-rake bbl:gcp:init[your-unique-gcp-project-name]
-rake bbl:gcp:up
-rake bosh:init[your-concourse-url]
-rake bosh:update
-rake bosh:deploy
-```
-
-### The longer version
 
 In your Rakefile:
 
