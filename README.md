@@ -223,7 +223,7 @@ The gem is available as open source under the terms of the [MIT License](http://
 
 Things remaining to do:
 
-- [ ] generate credentials
+- [x] generate credentials
 - [ ] update windows stemcell
 - [ ] an ops file for a windows worker
 - [ ] concourse:backup and concourse:restore
