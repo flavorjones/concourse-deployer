@@ -113,6 +113,7 @@ __NOTE:__ At this point, if you want to use a region/zone besides us-east1/us-ea
 
 __NOTE:__ `service-account.key.json` is sensitive and should NOT be committed to a public repo.
 
+
 ### Step 2: bbl up
 
 ``` sh
@@ -140,14 +141,10 @@ $ rake bosh:init[your-concourse-domain]
 This will:
 
 * generate a bosh manifest, `concourse.yml`, to deploy concourse
-* automatically generate all credentials (including key pairs),
-* and save those credentials to `private.yml`.
 
 __NOTE:__ `<your-concourse-domain>` is the DNS hostname at which concourse will be running
 
 __NOTE:__ `concourse.yml` can and should be edited by you!
-
-__NOTE:__ `private.yml` is sensitive and should NOT be committed to a public repo.
 
 
 ### Step 4: upload releases and stemcell to the director
@@ -170,7 +167,13 @@ __NOTE:__ This task is idempotent! If you want to upgrade your releases or stemc
 $ rake bosh:deploy
 ```
 
-This will deploy `concourse.yml` using the credentials set in `private.yml`.
+This will:
+
+* automatically generate all credentials (including key pairs and a self-signed cert),
+* and save those credentials to `private.yml`.
+* deploy `concourse.yml` using the credentials set in `private.yml`.
+
+__NOTE:__ `private.yml` is sensitive and should NOT be committed to a public repo.
 
 __NOTE:__ This task is idempotent! Yay bosh. Edit `concourse.yml` and re-run this task to update your deployment.
 
