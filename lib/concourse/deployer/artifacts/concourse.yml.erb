@@ -1,0 +1,87 @@
+---
+name: concourse
+
+director_uuid: "<%= director_uuid %>"
+
+releases:
+- name: concourse
+  version: latest
+- name: garden-runc
+  version: latest
+
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty
+  version: latest
+
+instance_groups:
+- name: web
+  instances: 1
+  vm_type: g1-small
+  vm_extensions:
+  - lb
+  stemcell: trusty
+  azs: [z1]
+  networks: [{name: private}]
+  jobs:
+  - name: atc
+    release: concourse
+    properties:
+      external_url: "<%= external_url %>"
+      basic_auth_username: ((basic-auth-username))
+      basic_auth_password: ((basic-auth-password))
+      tls_bind_port: 443
+      tls_cert: ((tls-cert))
+      tls_key: ((tls-key))
+      postgresql_database: &atc_db atc
+  - name: tsa
+    release: concourse
+    properties:
+      host_key: ((tsa-host-private-key))
+      host_public_key: ((tsa-host-public-key))
+      authorized_keys: []
+
+- name: db
+  instances: 1
+  vm_type: g1-small
+  stemcell: trusty
+  persistent_disk_type: 5GB
+  azs: [z1]
+  networks: [{name: private}]
+  jobs:
+  - name: postgresql
+    release: concourse
+    properties:
+      databases:
+      - name: *atc_db
+        role: ((pg-role))
+        password: ((pg-password))
+
+- name: worker
+  instances: 2
+  vm_type: g1-small
+  vm_extensions:
+  - 50GB_ephemeral_disk
+  stemcell: trusty
+  azs: [z1]
+  networks: [{name: private}]
+  jobs:
+  - name: groundcrew
+    release: concourse
+    properties: {}
+  - name: baggageclaim
+    release: concourse
+    properties: {}
+  - name: garden
+    release: garden-runc
+    properties:
+      garden:
+        listen_network: tcp
+        listen_address: 0.0.0.0:7777
+
+update:
+  canaries: 1
+  max_in_flight: 1
+  serial: false
+  canary_watch_time: 1000-60000
+  update_watch_time: 1000-60000

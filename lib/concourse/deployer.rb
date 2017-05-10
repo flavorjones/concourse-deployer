@@ -1,5 +1,8 @@
 require "concourse/deployer/version"
 require "concourse/deployer/utils"
+require "erb"
+require "open-uri"
+require "nokogiri"
 
 module Concourse
   class Deployer
@@ -10,6 +13,8 @@ module Concourse
     BBL_STATE_FILE           = "bbl-state.json"
     GCP_SERVICE_ACCOUNT_FILE = "service-account.key.json"
     ENVRC_FILE               = ".envrc"
+    BOSH_MANIFEST_FILE     = "concourse.yml"
+    BOSH_MANIFEST_ERB_FILE = "concourse.yml.erb"
 
     def bbl_init
       ensure_in_gitignore BBL_STATE_FILE
@@ -56,6 +61,70 @@ module Concourse
       sh "bbl create-lbs --type concourse"
     end
 
+    def bosh_prompt_to_overwrite_bosh_manifest
+      return true unless File.exist?(BOSH_MANIFEST_FILE)
+
+      overwrite = prompt "A #{BOSH_MANIFEST_FILE} file already exists. Do you want to overwrite it? (y/n)", "n"
+      return !! (overwrite =~ /^y/i)
+    end
+
+    def bosh_init external_url
+      ensure_in_envrc "BOSH_CLIENT", "`bbl director-username`"
+      ensure_in_envrc "BOSH_CLIENT_SECRET", "`bbl director-password`"
+      ensure_in_envrc "BOSH_CA_CERT", "`bbl director-ca-cert`"
+      ensure_in_envrc "BOSH_ENVIRONMENT", "`bbl director-address`"
+      ensure_in_envrc "BOSH_DEPLOYMENT", "concourse"
+      ensure_in_envrc "BOSH_GW_PRIVATE_KEY", "rsa_ssh"
+
+      if bosh_prompt_to_overwrite_bosh_manifest
+        File.open(BOSH_MANIFEST_FILE, "w") do |f|
+          # variables passed into the erb template via `binding`
+          director_uuid = `bosh env`.split("\n").grep(/UUID/).first.split(/\s+/)[1]
+
+          f.write ERB.new(File.read(File.join(File.dirname(__FILE__), "deployer", "artifacts", BOSH_MANIFEST_ERB_FILE)), nil, "%-").result(binding)
+        end
+      end
+    end
+
+    def bosh_update_ubuntu_stemcell
+      doc = Nokogiri::XML(open("https://bosh.io/stemcells/bosh-google-kvm-ubuntu-trusty-go_agent"))
+      url = doc.at_xpath("//span[@class='stemcell-name'][text()='Google KVM Light']/../..//a[@title='bosh-google-kvm-ubuntu-trusty-go_agent']/@href")
+      if url.nil?
+        error "Could not figure out where the latest Google KVM Light stemcell is"
+      end
+      sh "bosh upload-stemcell #{url}"
+    end
+
+    def bosh_update_release repo
+      doc = Nokogiri::XML(open("https://bosh.io/releases/github.com/#{repo}"))
+      url = doc.at_xpath("//a[text()='download']/@href")
+      if url.nil?
+        error "Could not figure out where the latest #{repo} release is"
+      end
+      if url.value =~ %r{\A/}
+        url = "https://bosh.io#{url}"
+      end
+      sh "bosh upload-release #{url}"
+    end
+
+    def bosh_update_garden_runc_release
+      bosh_update_release "cloudfoundry/garden-runc-release"
+    end
+
+    def bosh_update_concourse_release
+      bosh_update_release "concourse/concourse"
+    end
+
+    def bosh_update
+      bosh_update_ubuntu_stemcell
+      bosh_update_garden_runc_release
+      bosh_update_concourse_release
+    end
+
+    def bosh_deploy
+      sh "bosh deploy '#{BOSH_MANIFEST_FILE}'"
+    end
+
     def create_tasks!
       namespace "bbl" do
         namespace "gcp" do
@@ -77,15 +146,22 @@ module Concourse
 
       namespace "bosh" do
         desc "prepare a bosh manifest for your concourse deployment"
-        task "prepare-manifest" do
+        task "init", ["external_url"] do |t, args|
+          external_url = args["external_url"]
+          unless external_url
+            error "You must specify an external URL at which your concourse web server will be available, like `rake #{t.name}[external_url]`"
+          end
+          bosh_init external_url
         end
 
         desc "upload stemcells and releases to the director"
-        task "update-director" do
+        task "update" do
+          bosh_update
         end
 
         desc "deploy concourse"
         task "deploy" do
+          bosh_deploy
         end
 
         namespace "concourse" do
