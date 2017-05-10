@@ -165,40 +165,42 @@ module Concourse
         end
 
         namespace "concourse" do
-          desc "backup your concourse database to `concourse.atc.pgdump`"
+          desc "TODO backup your concourse database to `concourse.atc.pgdump`"
           task "backup" do
           end
 
-          desc "restore your concourse database from `concourse.atc.pgdump`"
+          desc "TODO restore your concourse database from `concourse.atc.pgdump`"
           task "restore" do
           end
         end
 
         namespace "cloud-config" do
-          desc "download the bosh cloud config to `cloud-config.yml`"
+          desc "TODO download the bosh cloud config to `cloud-config.yml`"
           task "download" do
           end
 
-          desc "upload a bosh cloud config from `cloud-config.yml`"
+          desc "TODO upload a bosh cloud config from `cloud-config.yml`"
           task "upload" do
           end
         end
       end
 
       namespace "letsencrypt" do
-        desc "backup web:/etc/letsencrypt to local disk"
+        desc "TODO backup web:/etc/letsencrypt to local disk"
         task "backup" do
         end
 
-        desc "import letsencrypt keys into `private.yml` from backup"
+        desc "TODO import letsencrypt keys into `private.yml` from backup"
         task "import" do
         end
 
-        desc "restore web:/etc/letsencrypt from backup" # TODO check ownership is root root afterwards
+        desc "TODO restore web:/etc/letsencrypt from backup"
+        # TODO check ownership is root root afterwards
         task "restore" do
         end
 
-        desc "renew the certificate" # TODO https://certbot.eff.org/#ubuntutrusty-other
+        desc "TODO renew the certificate"
+        # TODO https://certbot.eff.org/#ubuntutrusty-other
         task "renew" do
         end
       end

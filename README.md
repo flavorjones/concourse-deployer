@@ -35,6 +35,20 @@ And then run `bundle` or else install it directly with `gem install concourse-de
 
 ## Usage
 
+### TL;DR
+
+These five commands will give you a full concourse deployment:
+
+``` sh
+rake bbl:gcp:init[your-unique-gcp-project-name]
+rake bbl:gcp:up
+rake bosh:init[your-concourse-url]
+rake bosh:update
+rake bosh:deploy
+```
+
+### The longer version
+
 In your Rakefile:
 
 ``` ruby
@@ -53,8 +67,8 @@ rake bosh:cloud-config:upload      # upload a bosh cloud config from `cloud-conf
 rake bosh:concourse:backup         # backup your concourse database to `concourse.atc.pgdump`
 rake bosh:concourse:restore        # restore your concourse database from `concourse.atc.pgdump`
 rake bosh:deploy                   # deploy concourse
-rake bosh:prepare-manifest         # prepare a bosh manifest for your concourse deployment
-rake bosh:update-director          # upload stemcells and releases to the director
+rake bosh:init[external_url]       # prepare a bosh manifest for your concourse deployment
+rake bosh:update                   # upload stemcells and releases to the director
 rake letsencrypt:backup            # backup web:/etc/letsencrypt to local disk
 rake letsencrypt:import            # import letsencrypt keys into `private.yml` from backup
 rake letsencrypt:renew             # renew the certificate
@@ -121,15 +135,16 @@ __NOTE:__ `bbl-state.json` is sensitive and should NOT be committed to a public 
 ### Step 3: prepare a bosh manifest for your concourse deployment
 
 ``` sh
-$ rake bosh:prepare-manifest
+$ rake bosh:init[your-concourse-url]
 ```
 
 This will:
 
-* prompt you for some basic information,
 * generate a bosh manifest, `concourse.yml`, to deploy concourse
 * automatically generate all credentials (including key pairs),
 * and save those credentials to `private.yml`.
+
+__NOTE:__ `<your-concourse-url>` should start with `https://`
 
 __NOTE:__ `concourse.yml` can and should be edited by you!
 
@@ -139,13 +154,13 @@ __NOTE:__ `private.yml` is sensitive and should NOT be committed to a public rep
 ### Step 4: upload releases and stemcell to the director
 
 ``` sh
-$ rake bosh:update-director
+$ rake bosh:update
 ```
 
 This will:
 
-* prompt you to upload to the director the latest bosh releases for concourse and runC
-* prompt you to upload to the director the latest gcp lite stemcell
+* upload to the director the latest bosh releases for concourse and runC
+* upload to the director the latest gcp lite stemcell
 
 __NOTE:__ This task is idempotent! If you want to upgrade your releases or stemcell in the future, you should re-run this.
 
@@ -195,7 +210,6 @@ $ rake letsencrypt:renew
 ```
 
 
-
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/flavorjones/concourse-deployer. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
@@ -205,3 +219,15 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/flavor
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
 
+
+## TODO
+
+Things remaining to do:
+
+- [ ] generate credentials
+- [ ] update windows stemcell
+- [ ] an ops file for a windows worker
+- [ ] concourse:backup and concourse:restore
+- [ ] cloud-config:download and cloud-config:upload (do we really need this?)
+- [ ] letsencrypt certificate actions
+- [ ] consider requiring and using git-crypt for sensitive information
