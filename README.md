@@ -66,7 +66,7 @@ rake bosh:cloud-config:upload      # upload a bosh cloud config from `cloud-conf
 rake bosh:concourse:backup         # backup your concourse database to `concourse.atc.pgdump`
 rake bosh:concourse:restore        # restore your concourse database from `concourse.atc.pgdump`
 rake bosh:deploy                   # deploy concourse
-rake bosh:init[external_url]       # prepare a bosh manifest for your concourse deployment
+rake bosh:init[dns_name]           # prepare a bosh manifest for your concourse deployment
 rake bosh:update                   # upload stemcells and releases to the director
 rake letsencrypt:backup            # backup web:/etc/letsencrypt to local disk
 rake letsencrypt:import            # import letsencrypt keys into `private.yml` from backup
@@ -134,7 +134,7 @@ __NOTE:__ `bbl-state.json` is sensitive and should NOT be committed to a public 
 ### Step 3: prepare a bosh manifest for your concourse deployment
 
 ``` sh
-$ rake bosh:init[your-concourse-url]
+$ rake bosh:init[your-concourse-domain]
 ```
 
 This will:
@@ -143,7 +143,7 @@ This will:
 * automatically generate all credentials (including key pairs),
 * and save those credentials to `private.yml`.
 
-__NOTE:__ `<your-concourse-url>` should start with `https://`
+__NOTE:__ `<your-concourse-domain>` is the DNS hostname at which concourse will be running
 
 __NOTE:__ `concourse.yml` can and should be edited by you!
 

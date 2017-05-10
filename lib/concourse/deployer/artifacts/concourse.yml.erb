@@ -27,18 +27,18 @@ instance_groups:
   - name: atc
     release: concourse
     properties:
-      external_url: "<%= external_url %>"
-      basic_auth_username: ((basic-auth-username))
-      basic_auth_password: ((basic-auth-password))
+      external_url: "https://<%= dns_name %>"
+      basic_auth_username: ((basic_auth_username))
+      basic_auth_password: ((basic_auth_password))
       tls_bind_port: 443
-      tls_cert: ((tls-cert))
-      tls_key: ((tls-key))
+      tls_cert: ((atc_tls.certificate))
+      tls_key: ((atc_tls.private_key))
       postgresql_database: &atc_db atc
   - name: tsa
     release: concourse
     properties:
-      host_key: ((tsa-host-private-key))
-      host_public_key: ((tsa-host-public-key))
+      host_key: ((tsa_host_rsa.private_key))
+      host_public_key: ((tsa_host_rsa.public_key))
       authorized_keys: []
 
 - name: db
@@ -54,8 +54,8 @@ instance_groups:
     properties:
       databases:
       - name: *atc_db
-        role: ((pg-role))
-        password: ((pg-password))
+        role: ((pg_role))
+        password: ((pg_password))
 
 - name: worker
   instances: 2
@@ -85,3 +85,25 @@ update:
   serial: false
   canary_watch_time: 1000-60000
   update_watch_time: 1000-60000
+
+variables:
+  - name: basic_auth_username
+    type: password
+  - name: basic_auth_password
+    type: password
+  - name: pg_role
+    type: password
+  - name: pg_password
+    type: password
+  - name: default_ca
+    type: certificate
+    options:
+      is_ca: true
+      common_name: "<%= dns_name %>"
+  - name: atc_tls
+    type: certificate
+    options:
+      ca: default_ca
+      common_name: "<%= dns_name %>"
+  - name: tsa_host_rsa
+    type: rsa

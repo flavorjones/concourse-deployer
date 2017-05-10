@@ -15,6 +15,8 @@ module Concourse
     ENVRC_FILE               = ".envrc"
     BOSH_MANIFEST_FILE     = "concourse.yml"
     BOSH_MANIFEST_ERB_FILE = "concourse.yml.erb"
+    BOSH_RSA_KEY           = "rsa_ssh"
+    BOSH_VARS_STORE        = "private.yml"
 
     def bbl_init
       ensure_in_gitignore BBL_STATE_FILE
@@ -52,6 +54,9 @@ module Concourse
     end
 
     def bbl_gcp_up
+      ensure_in_gitignore BOSH_RSA_KEY
+      ensure_in_envrc "BOSH_GW_PRIVATE_KEY", BOSH_RSA_KEY
+
       unless ENV['BBL_GCP_PROJECT_ID']
         error "Environment variable BBL_GCP_PROJECT_ID is not set. Did you run `rake bbl:gcp:init` and `direnv allow`?"
       end
@@ -59,6 +64,9 @@ module Concourse
       note "If you get an error about 'Access Not Configured', follow the URL in the error message and enable API access for your project!"
       sh "bbl up --iaas gcp"
       sh "bbl create-lbs --type concourse"
+
+      sh "bbl ssh-key > #{BOSH_RSA_KEY}"
+      sh "chmod go-rwx #{BOSH_RSA_KEY}"
     end
 
     def bosh_prompt_to_overwrite_bosh_manifest
@@ -68,13 +76,12 @@ module Concourse
       return !! (overwrite =~ /^y/i)
     end
 
-    def bosh_init external_url
+    def bosh_init dns_name
       ensure_in_envrc "BOSH_CLIENT", "`bbl director-username`"
       ensure_in_envrc "BOSH_CLIENT_SECRET", "`bbl director-password`"
       ensure_in_envrc "BOSH_CA_CERT", "`bbl director-ca-cert`"
       ensure_in_envrc "BOSH_ENVIRONMENT", "`bbl director-address`"
       ensure_in_envrc "BOSH_DEPLOYMENT", "concourse"
-      ensure_in_envrc "BOSH_GW_PRIVATE_KEY", "rsa_ssh"
 
       if bosh_prompt_to_overwrite_bosh_manifest
         File.open(BOSH_MANIFEST_FILE, "w") do |f|
@@ -122,7 +129,8 @@ module Concourse
     end
 
     def bosh_deploy
-      sh "bosh deploy '#{BOSH_MANIFEST_FILE}'"
+      ensure_in_gitignore BOSH_VARS_STORE
+      sh "bosh deploy '#{BOSH_MANIFEST_FILE}' --vars-store=#{BOSH_VARS_STORE}"
     end
 
     def create_tasks!
@@ -146,12 +154,12 @@ module Concourse
 
       namespace "bosh" do
         desc "prepare a bosh manifest for your concourse deployment"
-        task "init", ["external_url"] do |t, args|
-          external_url = args["external_url"]
-          unless external_url
-            error "You must specify an external URL at which your concourse web server will be available, like `rake #{t.name}[external_url]`"
+        task "init", ["dns_name"] do |t, args|
+          dns_name = args["dns_name"]
+          unless dns_name
+            error "You must specify a domain name at which your concourse web server will be available, like `rake #{t.name}[dns_name]`"
           end
-          bosh_init external_url
+          bosh_init dns_name
         end
 
         desc "upload stemcells and releases to the director"
