@@ -12,7 +12,7 @@ These five commands will give you a full concourse deployment:
 ``` sh
 rake bbl:gcp:init[your-unique-gcp-project-name]
 rake bbl:gcp:up
-rake bosh:init[your-concourse-url]
+rake bosh:init[your-concourse-domain]
 rake bosh:update
 rake bosh:deploy
 ```
