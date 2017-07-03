@@ -93,20 +93,28 @@ module Concourse
       end
     end
 
-    def bosh_update_ubuntu_stemcell
-      doc = Nokogiri::XML(open("https://bosh.io/stemcells/bosh-google-kvm-ubuntu-trusty-go_agent"))
-      url = doc.at_xpath("//span[@class='stemcell-name'][text()='Google KVM Light']/../..//a[@title='bosh-google-kvm-ubuntu-trusty-go_agent']/@href")
+    def bosh_update_stemcell name
+      doc = Nokogiri::XML(open("https://bosh.io/stemcells/#{name}"))
+      url = doc.at_xpath("//span[@class='stemcell-name'][contains(text(), 'Light')]/../..//a[@title='#{name}']/@href")
       if url.nil?
-        error "Could not figure out where the latest Google KVM Light stemcell is"
+        error "Could not find the latest stemcell `#{name}`"
       end
       sh "bosh upload-stemcell #{url}"
+    end
+
+    def bosh_update_ubuntu_stemcell
+      bosh_update_stemcell "bosh-google-kvm-ubuntu-trusty-go_agent"
+    end
+
+    def bosh_update_windows_stemcell
+      bosh_update_stemcell "bosh-google-kvm-windows2012R2-go_agent"
     end
 
     def bosh_update_release repo
       doc = Nokogiri::XML(open("https://bosh.io/releases/github.com/#{repo}"))
       url = doc.at_xpath("//a[text()='download']/@href")
       if url.nil?
-        error "Could not figure out where the latest #{repo} release is"
+        error "Could not find the latest release `#{repo}`"
       end
       if url.value =~ %r{\A/}
         url = "https://bosh.io#{url}"
@@ -120,12 +128,6 @@ module Concourse
 
     def bosh_update_concourse_release
       bosh_update_release "concourse/concourse"
-    end
-
-    def bosh_update
-      bosh_update_ubuntu_stemcell
-      bosh_update_garden_runc_release
-      bosh_update_concourse_release
     end
 
     def bosh_deploy
@@ -163,8 +165,33 @@ module Concourse
         end
 
         desc "upload stemcells and releases to the director"
-        task "update" do
-          bosh_update
+        task "update" => [
+               "bosh:update:ubuntu_stemcell",
+               "bosh:update:windows_stemcell",
+               "bosh:update:garden_runc_release",
+               "bosh:update:concourse_release",
+             ]
+
+        namespace "update" do
+          desc "upload ubuntu stemcell to the director"
+          task "ubuntu_stemcell" do
+            bosh_update_ubuntu_stemcell
+          end
+
+          desc "upload windows stemcell to the director"
+          task "windows_stemcell" do
+            bosh_update_windows_stemcell
+          end
+
+          desc "upload garden release to the director"
+          task "garden_runc_release" do
+            bosh_update_garden_runc_release
+          end
+
+          desc "upload concoure release to the director"
+          task "concourse_release" do
+            bosh_update_concourse_release
+          end
         end
 
         desc "deploy concourse"

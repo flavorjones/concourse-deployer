@@ -227,8 +227,8 @@ The gem is available as open source under the terms of the [MIT License](http://
 Things remaining to do:
 
 - [x] generate credentials
-- [ ] update windows stemcell
-- [ ] an ops file for a windows worker
+- [x] update windows stemcell
+- [ ] include windows worker in manifest
 - [ ] concourse:backup and concourse:restore
 - [ ] cloud-config:download and cloud-config:upload (do we really need this?)
 - [ ] letsencrypt certificate actions
