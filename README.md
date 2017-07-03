@@ -228,7 +228,7 @@ Things remaining to do:
 
 - [x] generate credentials
 - [x] update windows stemcell
-- [ ] include windows worker in manifest
+- [x] include windows worker in manifest
 - [ ] concourse:backup and concourse:restore
 - [ ] cloud-config:download and cloud-config:upload (do we really need this?)
 - [ ] letsencrypt certificate actions

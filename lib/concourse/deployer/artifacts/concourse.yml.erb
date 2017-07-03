@@ -8,10 +8,15 @@ releases:
   version: latest
 - name: garden-runc
   version: latest
+- name: concourse-windows-worker
+  version: latest
 
 stemcells:
 - alias: trusty
   os: ubuntu-trusty
+  version: latest
+- alias: windows
+  os: windows2012R2
   version: latest
 
 instance_groups:
@@ -39,7 +44,8 @@ instance_groups:
     properties:
       host_key: ((tsa_host_rsa.private_key))
       host_public_key: ((tsa_host_rsa.public_key))
-      authorized_keys: []
+      authorized_keys:
+        - ((windows_worker_rsa.public_key))
 
 - name: db
   instances: 1
@@ -79,6 +85,24 @@ instance_groups:
         listen_network: tcp
         listen_address: 0.0.0.0:7777
 
+- name: worker-windows
+  instances: 1
+  vm_type: g1-small
+  vm_extensions:
+  - 50GB_ephemeral_disk
+  stemcell: windows
+  azs: [z1]
+  networks: [{name: private}]
+  jobs:
+  - name: concourse_windows
+    release: concourse-windows-worker
+  properties:
+    concourse_windows:
+      tsa_host: "<%= dns_name %>"
+      tsa_public_key: ((tsa_host_rsa.private_key))
+      tsa_worker_private_key: ((windows_worker_rsa.private_key))
+
+
 update:
   canaries: 1
   max_in_flight: 1
@@ -106,4 +130,6 @@ variables:
       ca: default_ca
       common_name: "<%= dns_name %>"
   - name: tsa_host_rsa
+    type: rsa
+  - name: windows_worker_rsa
     type: rsa

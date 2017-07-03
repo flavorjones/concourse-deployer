@@ -130,6 +130,20 @@ module Concourse
       bosh_update_release "concourse/concourse"
     end
 
+    def bosh_update_concourse_windows_release
+      git = "https://github.com/pivotal-cf-experimental/concourse-windows-release"
+      dirname = File.basename(git)
+      Dir.mktmpdir do |dir|
+        Dir.chdir dir do
+          sh "git clone '#{git}'"
+          Dir.chdir dirname do
+            sh "bosh create-release"
+            sh "bosh upload-release"
+          end
+        end
+      end
+    end
+
     def bosh_deploy
       ensure_in_gitignore BOSH_VARS_STORE
       sh "bosh deploy '#{BOSH_MANIFEST_FILE}' --vars-store=#{BOSH_VARS_STORE}"
@@ -170,6 +184,7 @@ module Concourse
                "bosh:update:windows_stemcell",
                "bosh:update:garden_runc_release",
                "bosh:update:concourse_release",
+               "bosh:update:concourse_windows_release",
              ]
 
         namespace "update" do
@@ -188,9 +203,14 @@ module Concourse
             bosh_update_garden_runc_release
           end
 
-          desc "upload concoure release to the director"
+          desc "upload concourse release to the director"
           task "concourse_release" do
             bosh_update_concourse_release
+          end
+
+          desc "upload concourse windows release to the director"
+          task "concourse_windows_release" do
+            bosh_update_concourse_windows_release
           end
         end
 
