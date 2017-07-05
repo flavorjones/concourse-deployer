@@ -13,10 +13,15 @@ module Concourse
     BBL_STATE_FILE           = "bbl-state.json"
     GCP_SERVICE_ACCOUNT_FILE = "service-account.key.json"
     ENVRC_FILE               = ".envrc"
-    BOSH_MANIFEST_FILE     = "concourse.yml"
-    BOSH_MANIFEST_ERB_FILE = "concourse.yml.erb"
-    BOSH_RSA_KEY           = "rsa_ssh"
-    BOSH_VARS_STORE        = "private.yml"
+    BOSH_MANIFEST_FILE       = "concourse.yml"
+    BOSH_MANIFEST_ERB_FILE   = "concourse.yml.erb"
+    BOSH_RSA_KEY             = "rsa_ssh"
+    BOSH_VARS_STORE          = "private.yml"
+    CONCOURSE_DB_BACKUP_FILE = "concourse.pg.gz"
+
+    PG_PATH = "/var/vcap/packages/postgres*/bin"
+    PG_DB   = "atc"
+    PG_USER = "vcap"
 
     def bbl_init
       ensure_in_gitignore BBL_STATE_FILE
@@ -149,6 +154,25 @@ module Concourse
       sh "bosh deploy '#{BOSH_MANIFEST_FILE}' --vars-store=#{BOSH_VARS_STORE}"
     end
 
+    def bosh_concourse_backup
+      ensure_in_gitignore CONCOURSE_DB_BACKUP_FILE
+
+      sh "bosh ssh db '#{PG_PATH}/pg_dumpall -c --username=vcap | gzip > /tmp/#{CONCOURSE_DB_BACKUP_FILE}'"
+      sh "bosh scp db:/tmp/#{CONCOURSE_DB_BACKUP_FILE} ."
+    end
+
+    def bosh_concourse_restore
+      ensure_in_gitignore CONCOURSE_DB_BACKUP_FILE
+
+      sh "bosh stop" # everything
+      sh "bosh start db" # so we can load the db
+
+      sh "bosh scp #{CONCOURSE_DB_BACKUP_FILE} db:/tmp"
+      sh "bosh ssh db 'gunzip -c /tmp/#{CONCOURSE_DB_BACKUP_FILE} | #{PG_PATH}/psql --username=vcap postgres'"
+
+      sh "bosh start" # everything, and migrate the db if necessary
+    end
+
     def create_tasks!
       namespace "bbl" do
         namespace "gcp" do
@@ -220,12 +244,14 @@ module Concourse
         end
 
         namespace "concourse" do
-          desc "TODO backup your concourse database to `concourse.atc.pgdump`"
+          desc "backup your concourse database to `#{CONCOURSE_DB_BACKUP_FILE}`"
           task "backup" do
+            bosh_concourse_backup
           end
 
-          desc "TODO restore your concourse database from `concourse.atc.pgdump`"
+          desc "restore your concourse database from `#{CONCOURSE_DB_BACKUP_FILE}`"
           task "restore" do
+            bosh_concourse_restore
           end
         end
 

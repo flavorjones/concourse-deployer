@@ -229,7 +229,8 @@ Things remaining to do:
 - [x] generate credentials
 - [x] update windows stemcell
 - [x] include windows worker in manifest
-- [ ] concourse:backup and concourse:restore
+- [x] concourse:backup and concourse:restore
 - [ ] cloud-config:download and cloud-config:upload (do we really need this?)
 - [ ] letsencrypt certificate actions
 - [ ] consider requiring and using git-crypt for sensitive information
+- [ ] see how it performs with f1-micro instances for workers?
