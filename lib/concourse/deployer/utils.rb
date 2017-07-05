@@ -5,6 +5,10 @@ module Concourse
     module Utils
       include Term::ANSIColor
       
+      def running message
+        print bold, red, "RUNNING: ", reset, message, "\n"
+      end
+
       def note message
         print bold, green, "NOTE: ", reset, message, "\n"
       end

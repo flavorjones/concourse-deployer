@@ -23,6 +23,11 @@ module Concourse
     PG_DB   = "atc"
     PG_USER = "vcap"
 
+    def sh command
+      running command
+      super command, verbose: false
+    end
+
     def bbl_init
       ensure_in_gitignore BBL_STATE_FILE
       unless_which "bbl", "https://github.com/cloudfoundry/bosh-bootloader/releases"
