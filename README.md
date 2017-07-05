@@ -59,19 +59,24 @@ Concourse::Deployer.new.create_tasks!
 Available tasks:
 
 ``` sh
-rake bbl:gcp:init[gcp_project_id]  # initialize bosh-bootloader for GCP
-rake bbl:gcp:up                    # terraform your environment and deploy the bosh director
-rake bosh:cloud-config:download    # download the bosh cloud config to `cloud-config.yml`
-rake bosh:cloud-config:upload      # upload a bosh cloud config from `cloud-config.yml`
-rake bosh:concourse:backup         # backup your concourse database to `concourse.atc.pgdump`
-rake bosh:concourse:restore        # restore your concourse database from `concourse.atc.pgdump`
-rake bosh:deploy                   # deploy concourse
-rake bosh:init[dns_name]           # prepare a bosh manifest for your concourse deployment
-rake bosh:update                   # upload stemcells and releases to the director
-rake letsencrypt:backup            # backup web:/etc/letsencrypt to local disk
-rake letsencrypt:import            # import letsencrypt keys into `private.yml` from backup
-rake letsencrypt:renew             # renew the certificate
-rake letsencrypt:restore           # restore web:/etc/letsencrypt from backup
+rake bbl:gcp:init[gcp_project_id]           # initialize bosh-bootloader for GCP
+rake bbl:gcp:up                             # terraform your environment and deploy the bosh director
+rake bosh:cloud-config:download             # download the bosh cloud config to `cloud-config.yml`
+rake bosh:cloud-config:upload               # upload a bosh cloud config from `cloud-config.yml`
+rake bosh:concourse:backup                  # backup your concourse database to `concourse.pg.gz`
+rake bosh:concourse:restore                 # restore your concourse database from `concourse.pg.gz`
+rake bosh:deploy                            # deploy concourse
+rake bosh:init[dns_name]                    # prepare a bosh manifest for your concourse deployment
+rake bosh:update                            # upload stemcells and releases to the director
+rake bosh:update:concourse_release          # upload concourse release to the director
+rake bosh:update:concourse_windows_release  # upload concourse windows release to the director
+rake bosh:update:garden_runc_release        # upload garden release to the director
+rake bosh:update:ubuntu_stemcell            # upload ubuntu stemcell to the director
+rake bosh:update:windows_stemcell           # upload windows stemcell to the director
+rake letsencrypt:backup                     # backup web:/etc/letsencrypt to local disk
+rake letsencrypt:import                     # import letsencrypt keys into `private.yml` from backup
+rake letsencrypt:renew                      # renew the certificate
+rake letsencrypt:restore                    # restore web:/etc/letsencrypt from backup
 ```
 
 ## A Note on Security
