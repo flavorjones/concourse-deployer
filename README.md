@@ -235,7 +235,12 @@ Things remaining to do:
 - [x] update windows stemcell
 - [x] include windows worker in manifest
 - [x] concourse:backup and concourse:restore
-- [ ] cloud-config:download and cloud-config:upload (do we really need this?)
+- [x] cloud-config:download and cloud-config:upload (do we really need this?)
 - [ ] letsencrypt certificate actions
 - [ ] consider requiring and using git-crypt for sensitive information
 - [ ] see how it performs with f1-micro instances for workers?
+
+
+Things I'm not immediately planning to do but that might be nice:
+
+- [ ] ops file to make the cloud-config come in under default GCP quota
