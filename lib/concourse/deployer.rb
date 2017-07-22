@@ -261,12 +261,14 @@ module Concourse
         end
 
         namespace "cloud-config" do
-          desc "TODO download the bosh cloud config to `cloud-config.yml`"
+          desc "download the bosh cloud config to `cloud-config.yml`"
           task "download" do
+            sh "bosh cloud-config > cloud-config.yml"
           end
 
-          desc "TODO upload a bosh cloud config from `cloud-config.yml`"
+          desc "upload a bosh cloud config from `cloud-config.yml`"
           task "upload" do
+            sh "bosh update-cloud-config cloud-config.yml"
           end
         end
       end
