@@ -17,7 +17,7 @@ module Concourse
     BOSH_MANIFEST_ERB_FILE   = "concourse.yml.erb"
     BOSH_RSA_KEY             = "rsa_ssh"
     BOSH_VARS_STORE          = "private.yml"
-    CONCOURSE_DB_BACKUP_FILE = "concourse.pg.gz"
+    CONCOURSE_DB_BACKUP_FILE = "concourse.atc.pg.gz"
 
     PG_PATH = "/var/vcap/packages/postgres*/bin"
     PG_DB   = "atc"
