@@ -20,7 +20,6 @@ module Concourse
     CONCOURSE_DB_BACKUP_FILE = "concourse.atc.pg.gz"
 
     PG_PATH = "/var/vcap/packages/postgres*/bin"
-    PG_DB   = "atc"
     PG_USER = "vcap"
 
     def sh command
@@ -162,7 +161,7 @@ module Concourse
     def bosh_concourse_backup
       ensure_in_gitignore CONCOURSE_DB_BACKUP_FILE
 
-      sh "bosh ssh db '#{PG_PATH}/pg_dumpall -c --username=vcap | gzip > /tmp/#{CONCOURSE_DB_BACKUP_FILE}'"
+      sh "bosh ssh db '#{PG_PATH}/pg_dumpall -c --username=#{PG_USER} | gzip > /tmp/#{CONCOURSE_DB_BACKUP_FILE}'"
       sh "bosh scp db:/tmp/#{CONCOURSE_DB_BACKUP_FILE} ."
     end
 
@@ -173,7 +172,7 @@ module Concourse
       sh "bosh start db" # so we can load the db
 
       sh "bosh scp #{CONCOURSE_DB_BACKUP_FILE} db:/tmp"
-      sh "bosh ssh db 'gunzip -c /tmp/#{CONCOURSE_DB_BACKUP_FILE} | #{PG_PATH}/psql --username=vcap postgres'"
+      sh "bosh ssh db 'gunzip -c /tmp/#{CONCOURSE_DB_BACKUP_FILE} | #{PG_PATH}/psql --username=#{PG_USER} postgres'"
 
       sh "bosh start" # everything, and migrate the db if necessary
     end
