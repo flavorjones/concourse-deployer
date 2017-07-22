@@ -22,8 +22,8 @@ rake bosh:deploy
 
 This gem requires:
 
-* `bbl` ~> 3.0.2 (https://github.com/cloudfoundry/bosh-bootloader/releases)
-* `bosh` ~> 2.0 (https://github.com/cloudfoundry/bosh-cli/releases)
+* `bbl` ~> 3.2.0 (https://github.com/cloudfoundry/bosh-bootloader/releases)
+* `bosh` ~> 2.0.0 (https://github.com/cloudfoundry/bosh-cli/releases)
 * `terraform` (https://www.terraform.io/downloads.html)
 
 If you're deploying to GCP, this gem also requires:
