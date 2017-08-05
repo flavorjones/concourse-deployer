@@ -19,7 +19,7 @@ module Concourse
     BOSH_RSA_KEY             = "rsa_ssh"
     BOSH_VARS_STORE          = "private.yml"
     CONCOURSE_DB_BACKUP_FILE = "concourse.atc.pg.gz"
-    LETSENCRYPT_BACKUP_FILE  = "letsencrypt.tar.tz"
+    LETSENCRYPT_BACKUP_FILE  = "letsencrypt.tar.gz"
 
     PG_PATH = "/var/vcap/packages/postgres*/bin"
     PG_USER = "vcap"
@@ -197,12 +197,14 @@ module Concourse
     end
 
     def letsencrypt_backup
-      sh %Q{bosh ssh web -c 'sudo tar -zcvf /var/tmp/letsencrypt.tar.gz -C /etc letsencrypt'}
-      sh %Q{bosh scp web:/var/tmp/letsencrypt.tar.gz .}
+      ensure_in_gitignore LETSENCRYPT_BACKUP_FILE
+      sh %Q{bosh ssh web -c 'sudo tar -zcvf /var/tmp/#{LETSENCRYPT_BACKUP_FILE} -C /etc letsencrypt'}
+      sh %Q{bosh scp web:/var/tmp/#{LETSENCRYPT_BACKUP_FILE} .}
     end
 
     def letsencrypt_import
-      sh "tar -zxf letsencrypt.tar.gz"
+      ensure_in_gitignore LETSENCRYPT_BACKUP_FILE
+      sh "tar -zxf #{LETSENCRYPT_BACKUP_FILE}"
       begin
         note "importing certificate and private key for #{dns_name} ..."
         private = YAML.load_file BOSH_VARS_STORE
@@ -218,6 +220,7 @@ module Concourse
     end
 
     def letsencrypt_restore
+      ensure_in_gitignore LETSENCRYPT_BACKUP_FILE
       sh "bosh ssh web -c 'sudo rm -rf /etc/letsencrypt /var/tmp/#{LETSENCRYPT_BACKUP_FILE}'"
 
       sh "bosh scp #{LETSENCRYPT_BACKUP_FILE} web:/var/tmp"
