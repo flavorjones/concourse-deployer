@@ -72,8 +72,10 @@ rake bosh:update:concourse_release          # upload concourse release to the di
 rake bosh:update:concourse_windows_release  # upload concourse windows release to the director
 rake bosh:update:garden_runc_release        # upload garden release to the director
 rake bosh:update:ubuntu_stemcell            # upload ubuntu stemcell to the director
+rake bosh:update:windows_ruby_dev_tools     # upload windows-ruby-dev-tools release to the director
 rake bosh:update:windows_stemcell           # upload windows stemcell to the director
 rake letsencrypt:backup                     # backup web:/etc/letsencrypt to local disk
+rake letsencrypt:create                     # create a cert
 rake letsencrypt:import                     # import letsencrypt keys into `private.yml` from backup
 rake letsencrypt:renew                      # renew the certificate
 rake letsencrypt:restore                    # restore web:/etc/letsencrypt from backup
@@ -91,11 +93,12 @@ Files it's OK to commit to a public repo, because they contain no sensitive data
 
 Files it's NOT OK to be public, because they contain sensitive data:
 
-* `service-account.key.json`
 * `bbl-state.json`
+* `concourse.atc.pg.gz`
+* `letsencrypt.tar.gz`
 * `private.yml`
-* `concourse.atc.pgdump`
-* `letsencrypt/`
+* `rsa_ssh`
+* `service-account.key.json`
 
 
 ## Deploying to GCP
@@ -160,8 +163,8 @@ $ rake bosh:update
 
 This will:
 
-* upload to the director the latest bosh releases for concourse and runC
-* upload to the director the latest gcp lite stemcell
+* upload to the director the latest bosh releases for concourse, runC, and others
+* upload to the director the latest gcp lite stemcells
 
 __NOTE:__ This task is idempotent! If you want to upgrade your releases or stemcell in the future, you should re-run this.
 
@@ -192,7 +195,7 @@ $ rake bosh:concourse:backup
 $ rake bosh:concourse:restore
 ```
 
-__NOTE:__ The backup file, `concourse.atc.pgdump`, may contain sensitive data from your concourse pipelines and should NOT be committed to a public git repo.
+__NOTE:__ The backup file, `concourse.atc.pg.gz`, may contain sensitive data from your concourse pipelines and should NOT be committed to a public git repo.
 
 
 ### Download and Upload a bosh cloud config
@@ -211,10 +214,13 @@ __NOTE:__ The cloud config file, `cloud-config.yml` does not contain credentials
 
 ``` sh
 $ rake letsencrypt:backup
+$ rake letsencrypt:create
 $ rake letsencrypt:restore
 $ rake letsencrypt:import
 $ rake letsencrypt:renew
 ```
+
+__NOTE:__ These tasks will create and use `letsencrypt.tar.gz` containing your cert's private key, which should NOT be committed to a public git repo.
 
 
 ## Contributing
