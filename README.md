@@ -236,11 +236,27 @@ Things remaining to do:
 - [x] include windows worker in manifest
 - [x] concourse:backup and concourse:restore
 - [x] cloud-config:download and cloud-config:upload (do we really need this?)
-- [ ] letsencrypt certificate actions
+- [x] see how it performs with f1-micro instances for workers? [pretty good!]
+- [x] update bosh manifest for cost savings (see below)
+- [x] letsencrypt certificate tasks
 - [ ] consider requiring and using git-crypt for sensitive information
-- [ ] see how it performs with f1-micro instances for workers?
-
+- [ ] send PR to bbl for suspending/unsuspending the director VM
+- [ ] deploy windows ruby tools release to the windows vms
 
 Things I'm not immediately planning to do but that might be nice:
 
 - [ ] ops file to make the cloud-config come in under default GCP quota
+- [ ] ops files for a few variations on size/cost tradeoffs
+
+
+## Deployment Costs
+
+see https://cloud.google.com/compute/pricing
+
+use f1-micros for workers, and turn off the bosh director:
+
+- bosh director: turn it off when not deploying or updating!
+- atc/tsa: f1-micro: $4.09
+- 4 workers f1-micro: 4 x $4.09
+- db: g1-small: $13.80 (cannot run in f1-micro memory)
+- TOTAL: $34.25 / month
