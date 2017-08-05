@@ -42,10 +42,10 @@ instance_groups:
   - name: tsa
     release: concourse
     properties:
-      host_key: ((tsa_host_rsa.private_key))
-      host_public_key: ((tsa_host_rsa.public_key))
+      host_key: ((tsa_host_ssh.private_key))
+      host_public_key: ((tsa_host_ssh.public_key))
       authorized_keys:
-        - ((windows_worker_rsa.public_key))
+        - ((windows_worker_ssh.public_key))
 
 - name: db
   instances: 1
@@ -99,8 +99,8 @@ instance_groups:
   properties:
     concourse_windows:
       tsa_host: "<%= dns_name %>"
-      tsa_public_key: ((tsa_host_rsa.private_key))
-      tsa_worker_private_key: ((windows_worker_rsa.private_key))
+      tsa_public_key: ((tsa_host_ssh.public_key))
+      tsa_worker_private_key: ((windows_worker_ssh.private_key))
 
 
 update:
@@ -129,7 +129,7 @@ variables:
     options:
       ca: default_ca
       common_name: "<%= dns_name %>"
-  - name: tsa_host_rsa
-    type: rsa
-  - name: windows_worker_rsa
-    type: rsa
+  - name: tsa_host_ssh
+    type: ssh
+  - name: windows_worker_ssh
+    type: ssh
