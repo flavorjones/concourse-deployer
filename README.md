@@ -210,7 +210,7 @@ $ rake bosh:cloud-config:upload
 __NOTE:__ The cloud config file, `cloud-config.yml` does not contain credentials and is OK to commit to a repository if you like.
 
 
-### Manage SSH keys from letsencrypt
+### Manage your letsencrypt SSL cert
 
 ``` sh
 $ rake letsencrypt:backup
