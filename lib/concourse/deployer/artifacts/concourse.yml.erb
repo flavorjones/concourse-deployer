@@ -22,7 +22,7 @@ stemcells:
 instance_groups:
 - name: web
   instances: 1
-  vm_type: g1-small
+  vm_type: f1-micro
   vm_extensions:
   - lb
   stemcell: trusty
@@ -64,8 +64,8 @@ instance_groups:
         password: ((pg_password))
 
 - name: worker
-  instances: 2
-  vm_type: g1-small
+  instances: 3
+  vm_type: f1-micro
   vm_extensions:
   - 50GB_ephemeral_disk
   stemcell: trusty
@@ -87,7 +87,7 @@ instance_groups:
 
 - name: worker-windows
   instances: 1
-  vm_type: g1-small
+  vm_type: f1-micro
   vm_extensions:
   - 50GB_ephemeral_disk
   stemcell: windows
@@ -105,7 +105,7 @@ instance_groups:
 
 update:
   canaries: 1
-  max_in_flight: 1
+  max_in_flight: 10
   serial: false
   canary_watch_time: 1000-60000
   update_watch_time: 1000-60000
