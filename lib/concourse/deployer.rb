@@ -3,6 +3,7 @@ require "concourse/deployer/utils"
 require "erb"
 require "open-uri"
 require "nokogiri"
+require "yaml"
 
 module Concourse
   class Deployer
@@ -18,6 +19,7 @@ module Concourse
     BOSH_RSA_KEY             = "rsa_ssh"
     BOSH_VARS_STORE          = "private.yml"
     CONCOURSE_DB_BACKUP_FILE = "concourse.atc.pg.gz"
+    LETSENCRYPT_BACKUP_FILE  = "letsencrypt.tar.tz"
 
     PG_PATH = "/var/vcap/packages/postgres*/bin"
     PG_USER = "vcap"
@@ -177,6 +179,64 @@ module Concourse
       sh "bosh start" # everything, and migrate the db if necessary
     end
 
+    def dns_name
+      @dns_name ||= YAML.load_file(BOSH_MANIFEST_FILE)["variables"].find {|h| h["name"] == "atc_tls"}["options"]["common_name"]
+    end
+
+    def letsencrypt_create
+      sh "bosh ssh web -c 'sudo add-apt-repository -y ppa:certbot/certbot'"
+      sh "bosh ssh web -c 'sudo apt-get update'"
+      sh "bosh ssh web -c 'sudo apt-get install -y certbot'"
+      sh "bosh stop web"
+      begin
+        note "logging you into the web server. run this command: sudo certbot certonly --standalone -d \"#{dns_name}\""
+        sh "bosh ssh web"
+      ensure
+        sh "bosh start web"
+      end
+    end
+
+    def letsencrypt_backup
+      sh %Q{bosh ssh web -c 'sudo tar -zcvf /var/tmp/letsencrypt.tar.gz -C /etc letsencrypt'}
+      sh %Q{bosh scp web:/var/tmp/letsencrypt.tar.gz .}
+    end
+
+    def letsencrypt_import
+      sh "tar -zxf letsencrypt.tar.gz"
+      begin
+        note "importing certificate and private key for #{dns_name} ..."
+        private = YAML.load_file BOSH_VARS_STORE
+        private["atc_tls"]["certificate"] = File.read "letsencrypt/live/#{dns_name}/fullchain.pem"
+        private["atc_tls"]["private_key"] = File.read "letsencrypt/live/#{dns_name}/privkey.pem"
+        private["atc_tls"].delete("ca")
+        File.open BOSH_VARS_STORE, "w" do |f|
+          f.write private.to_yaml
+        end
+      ensure
+        sh "rm -rf letsencrypt"
+      end
+    end
+
+    def letsencrypt_restore
+      sh "bosh ssh web -c 'sudo rm -rf /etc/letsencrypt /var/tmp/#{LETSENCRYPT_BACKUP_FILE}'"
+
+      sh "bosh scp #{LETSENCRYPT_BACKUP_FILE} web:/var/tmp"
+      sh "bosh ssh web -c 'sudo tar -zxvf /var/tmp/#{LETSENCRYPT_BACKUP_FILE} -C /etc'"
+      sh "bosh ssh web -c 'sudo chown -R root:root /etc/letsencrypt'"
+    end
+
+    def letsencrypt_renew
+      sh "bosh ssh web -c 'sudo add-apt-repository -y ppa:certbot/certbot'"
+      sh "bosh ssh web -c 'sudo apt-get update'"
+      sh "bosh ssh web -c 'sudo apt-get install -y certbot'"
+      sh "bosh stop web"
+      begin
+        sh "bosh ssh web -c 'sudo certbot renew'"
+      ensure
+        sh "bosh start web"
+      end
+    end
+
     def create_tasks!
       namespace "bbl" do
         namespace "gcp" do
@@ -273,22 +333,29 @@ module Concourse
       end
 
       namespace "letsencrypt" do
-        desc "TODO backup web:/etc/letsencrypt to local disk"
+        desc "create a cert"
+        task "create" do
+          letsencrypt_create
+        end
+
+        desc "backup web:/etc/letsencrypt to local disk"
         task "backup" do
+          letsencrypt_backup
         end
 
-        desc "TODO import letsencrypt keys into `private.yml` from backup"
+        desc "import letsencrypt keys into `#{BOSH_VARS_STORE}` from backup"
         task "import" do
+          letsencrypt_import
         end
 
-        desc "TODO restore web:/etc/letsencrypt from backup"
-        # TODO check ownership is root root afterwards
+        desc "restore web:/etc/letsencrypt from backup"
         task "restore" do
+          letsencrypt_restore
         end
 
-        desc "TODO renew the certificate"
-        # TODO https://certbot.eff.org/#ubuntutrusty-other
+        desc "renew the certificate"
         task "renew" do
+          letsencrypt_renew
         end
       end
     end
