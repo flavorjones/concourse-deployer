@@ -141,8 +141,7 @@ module Concourse
       bosh_update_release "concourse/concourse"
     end
 
-    def bosh_update_concourse_windows_release
-      git = "https://github.com/pivotal-cf-experimental/concourse-windows-release"
+    def bosh_update_from_git_repo git
       dirname = File.basename(git)
       Dir.mktmpdir do |dir|
         Dir.chdir dir do
@@ -153,6 +152,14 @@ module Concourse
           end
         end
       end
+    end
+
+    def bosh_update_concourse_windows_release
+      bosh_update_from_git_repo "https://github.com/pivotal-cf-experimental/concourse-windows-release"
+    end
+
+    def bosh_update_windows_ruby_dev_tools
+      bosh_update_from_git_repo "https://github.com/flavorjones/windows-ruby-dev-tools-release"
     end
 
     def bosh_deploy
@@ -276,6 +283,7 @@ module Concourse
                "bosh:update:garden_runc_release",
                "bosh:update:concourse_release",
                "bosh:update:concourse_windows_release",
+               "bosh:update:windows_ruby_dev_tools",
              ]
 
         namespace "update" do
@@ -302,6 +310,11 @@ module Concourse
           desc "upload concourse windows release to the director"
           task "concourse_windows_release" do
             bosh_update_concourse_windows_release
+          end
+
+          desc "upload windows-ruby-dev-tools release to the director"
+          task "windows_ruby_dev_tools" do
+            bosh_update_windows_ruby_dev_tools
           end
         end
 

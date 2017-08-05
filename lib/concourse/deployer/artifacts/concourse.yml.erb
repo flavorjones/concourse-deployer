@@ -10,6 +10,8 @@ releases:
   version: latest
 - name: concourse-windows-worker
   version: latest
+- name: windows-ruby-dev-tools
+  version: latest
 
 stemcells:
 - alias: trusty
@@ -96,6 +98,8 @@ instance_groups:
   jobs:
   - name: concourse_windows
     release: concourse-windows-worker
+  - name: windows-ruby-dev-tools
+    release: windows-ruby-dev-tools
   properties:
     concourse_windows:
       tsa_host: "<%= dns_name %>"
