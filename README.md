@@ -245,9 +245,10 @@ Things remaining to do:
 - [x] see how it performs with f1-micro instances for workers? [pretty good!]
 - [x] update bosh manifest for cost savings (see below)
 - [x] letsencrypt certificate tasks
+- [x] deploy windows ruby tools release to the windows vms
 - [ ] consider requiring and using git-crypt for sensitive information
 - [ ] send PR to bbl for suspending/unsuspending the director VM
-- [ ] deploy windows ruby tools release to the windows vms
+- [ ] stack driver add-on
 
 Things I'm not immediately planning to do but that might be nice:
 
