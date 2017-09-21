@@ -155,11 +155,13 @@ module Concourse
     end
 
     def bosh_update_concourse_windows_release
-      bosh_update_from_git_repo "https://github.com/pivotal-cf-experimental/concourse-windows-release"
+      # bosh_update_from_git_repo "https://github.com/pivotal-cf-experimental/concourse-windows-release"
+      bosh_update_release "pivotal-cf-experimental/concourse-windows-worker-release"
     end
 
     def bosh_update_windows_ruby_dev_tools
-      bosh_update_from_git_repo "https://github.com/flavorjones/windows-ruby-dev-tools-release"
+      # bosh_update_from_git_repo "https://github.com/flavorjones/windows-ruby-dev-tools-release"
+      bosh_update_release "flavorjones/windows-ruby-dev-tools-release"
     end
 
     def bosh_deploy
