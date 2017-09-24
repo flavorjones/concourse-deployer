@@ -287,6 +287,7 @@ module Concourse
                "bosh:update:ubuntu_stemcell",
                "bosh:update:windows_stemcell",
                "bosh:update:garden_runc_release",
+               "bosh:update:postgres_release",
                "bosh:update:concourse_release",
                "bosh:update:concourse_windows_release",
                "bosh:update:windows_ruby_dev_tools",
