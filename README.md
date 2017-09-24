@@ -252,11 +252,13 @@ Things remaining to do:
 - [x] support using git-crypt for sensitive information
 - [ ] send PR to bbl for suspending/unsuspending the director VM
 - [ ] stack driver add-on
+- [ ] atc encryption key https://concourse.ci/encryption.html
 
 Things I'm not immediately planning to do but that might be nice:
 
 - [ ] ops file to make the cloud-config come in under default GCP quota
 - [ ] ops files for a few variations on size/cost tradeoffs
+- [ ] deploy credhub and integrate it
 
 
 ## Deployment Costs
