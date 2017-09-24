@@ -33,6 +33,17 @@ module Concourse
         File.open(GITIGNORE_FILE, "a") { |f| f.puts ignore_entry }
       end
 
+      def ensure_in_gitignore_or_gitcrypt ignore_entry
+        if File.exist?(GITATTRIBUTES_FILE)
+          crypt_entry = "#{ignore_entry} filter=git-crypt diff=git-crypt"
+          if File.read(GITATTRIBUTES_FILE).split("\n").include?(crypt_entry)
+            note "found '#{crypt_entry}' already present in #{GITATTRIBUTES_FILE}"
+            return
+          end
+        end
+        ensure_in_gitignore ignore_entry
+      end
+
       def ensure_in_envrc entry_key, entry_value
         entry_match = /^export #{entry_key}=/
         entry_contents = "export #{entry_key}=#{entry_value}"

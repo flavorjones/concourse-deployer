@@ -101,6 +101,8 @@ Files it's NOT OK to be public, because they contain sensitive data:
 * `rsa_ssh`
 * `service-account.key.json`
 
+If you've installed `git-crypt`, then you should move each of these files from your `.gitignore` into your `.gitattributes` specifying `filter=git-crypt diff=git-crypt` for each.
+
 
 ## Deploying to GCP
 
@@ -247,7 +249,7 @@ Things remaining to do:
 - [x] update bosh manifest for cost savings (see below)
 - [x] letsencrypt certificate tasks
 - [x] deploy windows ruby tools release to the windows vms
-- [ ] consider requiring and using git-crypt for sensitive information
+- [x] support using git-crypt for sensitive information
 - [ ] send PR to bbl for suspending/unsuspending the director VM
 - [ ] stack driver add-on
 

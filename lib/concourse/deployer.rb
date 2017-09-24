@@ -11,6 +11,7 @@ module Concourse
     include Concourse::Deployer::Utils
 
     GITIGNORE_FILE           = ".gitignore"
+    GITATTRIBUTES_FILE       = ".gitattributes"
     BBL_STATE_FILE           = "bbl-state.json"
     GCP_SERVICE_ACCOUNT_FILE = "service-account.key.json"
     ENVRC_FILE               = ".envrc"
@@ -30,7 +31,7 @@ module Concourse
     end
 
     def bbl_init
-      ensure_in_gitignore BBL_STATE_FILE
+      ensure_in_gitignore_or_gitcrypt BBL_STATE_FILE
       unless_which "bbl", "https://github.com/cloudfoundry/bosh-bootloader/releases"
       unless_which "bosh", "https://github.com/cloudfoundry/bosh-cli/releases"
       unless_which "terraform", "https://www.terraform.io/downloads.html"
@@ -45,7 +46,7 @@ module Concourse
 
     def bbl_gcp_init project_id
       bbl_init
-      ensure_in_gitignore GCP_SERVICE_ACCOUNT_FILE
+      ensure_in_gitignore_or_gitcrypt GCP_SERVICE_ACCOUNT_FILE
       unless_which "gcloud", "https://cloud.google.com/sdk/downloads"
 
       ensure_in_envrc "BBL_GCP_PROJECT_ID", project_id
@@ -65,7 +66,7 @@ module Concourse
     end
 
     def bbl_gcp_up
-      ensure_in_gitignore BOSH_RSA_KEY
+      ensure_in_gitignore_or_gitcrypt BOSH_RSA_KEY
       ensure_in_envrc "BOSH_GW_PRIVATE_KEY", BOSH_RSA_KEY
 
       unless ENV['BBL_GCP_PROJECT_ID']
@@ -169,7 +170,7 @@ module Concourse
     end
 
     def bosh_deploy
-      ensure_in_gitignore BOSH_VARS_STORE
+      ensure_in_gitignore_or_gitcrypt BOSH_VARS_STORE
       sh "bosh deploy '#{BOSH_MANIFEST_FILE}' --vars-store=#{BOSH_VARS_STORE}"
     end
 
