@@ -21,7 +21,7 @@ module Concourse
     CONCOURSE_DB_BACKUP_FILE = "concourse.atc.pg.gz"
     LETSENCRYPT_BACKUP_FILE  = "letsencrypt.tar.gz"
 
-    PG_PATH = "/var/vcap/packages/postgres*/bin"
+    PG_PATH = "/var/vcap/packages/postgres-9*/bin"
     PG_USER = "vcap"
 
     def sh command
@@ -176,6 +176,7 @@ module Concourse
     def bosh_concourse_backup
       ensure_in_gitignore CONCOURSE_DB_BACKUP_FILE
 
+      sh "bosh ssh db 'rm -rf /tmp/#{CONCOURSE_DB_BACKUP_FILE}'"
       sh "bosh ssh db '#{PG_PATH}/pg_dumpall -c --username=#{PG_USER} | gzip > /tmp/#{CONCOURSE_DB_BACKUP_FILE}'"
       sh "bosh scp db:/tmp/#{CONCOURSE_DB_BACKUP_FILE} ."
     end
