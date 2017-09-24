@@ -12,6 +12,8 @@ releases:
   version: latest
 - name: windows-ruby-dev-tools
   version: latest
+- name: postgres
+  version: latest
 
 stemcells:
 - alias: trusty
@@ -40,7 +42,11 @@ instance_groups:
       tls_bind_port: 443
       tls_cert: ((atc_tls.certificate))
       tls_key: ((atc_tls.private_key))
-      postgresql_database: &atc_db atc
+      postgresql:
+        database: atc
+        role:
+          name: ((pg_role))
+          password: ((pg_password))
   - name: tsa
     release: concourse
     properties:
@@ -57,17 +63,20 @@ instance_groups:
   azs: [z1]
   networks: [{name: private}]
   jobs:
-  - name: postgresql
-    release: concourse
+  - name: postgres
+    release: postgres
     properties:
       databases:
-      - name: *atc_db
-        role: ((pg_role))
-        password: ((pg_password))
+        port: 5432
+        databases:
+        - name: atc
+        roles:
+        - name: ((pg_role))
+          password: ((pg_password))
 
 - name: worker
   instances: 3
-  vm_type: f1-micro
+  vm_type: g1-small
   vm_extensions:
   - 50GB_ephemeral_disk
   stemcell: trusty
@@ -89,7 +98,7 @@ instance_groups:
 
 - name: worker-windows
   instances: 1
-  vm_type: f1-micro
+  vm_type: g1-small
   vm_extensions:
   - 50GB_ephemeral_disk
   stemcell: windows
