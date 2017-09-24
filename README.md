@@ -71,6 +71,7 @@ rake bosh:update                            # upload stemcells and releases to t
 rake bosh:update:concourse_release          # upload concourse release to the director
 rake bosh:update:concourse_windows_release  # upload concourse windows release to the director
 rake bosh:update:garden_runc_release        # upload garden release to the director
+rake bosh:update:postgres_release           # upload postgres release to the director
 rake bosh:update:ubuntu_stemcell            # upload ubuntu stemcell to the director
 rake bosh:update:windows_ruby_dev_tools     # upload windows-ruby-dev-tools release to the director
 rake bosh:update:windows_stemcell           # upload windows stemcell to the director

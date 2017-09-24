@@ -141,6 +141,10 @@ module Concourse
       bosh_update_release "concourse/concourse"
     end
 
+    def bosh_update_postgres_release
+      bosh_update_release "cloudfoundry/postgres-release"
+    end
+
     def bosh_update_from_git_repo git
       dirname = File.basename(git)
       Dir.mktmpdir do |dir|
@@ -317,6 +321,11 @@ module Concourse
           desc "upload windows-ruby-dev-tools release to the director"
           task "windows_ruby_dev_tools" do
             bosh_update_windows_ruby_dev_tools
+          end
+
+          desc "upload postgres release to the director"
+          task "postgres_release" do
+            bosh_update_postgres_release
           end
         end
 
