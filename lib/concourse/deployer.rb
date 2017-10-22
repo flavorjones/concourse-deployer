@@ -212,13 +212,13 @@ module Concourse
     end
 
     def letsencrypt_backup
-      ensure_in_gitignore LETSENCRYPT_BACKUP_FILE
+      ensure_in_gitignore_or_gitcrypt LETSENCRYPT_BACKUP_FILE
       sh %Q{bosh ssh web -c 'sudo tar -zcvf /var/tmp/#{LETSENCRYPT_BACKUP_FILE} -C /etc letsencrypt'}
       sh %Q{bosh scp web:/var/tmp/#{LETSENCRYPT_BACKUP_FILE} .}
     end
 
     def letsencrypt_import
-      ensure_in_gitignore LETSENCRYPT_BACKUP_FILE
+      ensure_in_gitignore_or_gitcrypt LETSENCRYPT_BACKUP_FILE
       sh "tar -zxf #{LETSENCRYPT_BACKUP_FILE}"
       begin
         note "importing certificate and private key for #{dns_name} ..."
@@ -235,7 +235,7 @@ module Concourse
     end
 
     def letsencrypt_restore
-      ensure_in_gitignore LETSENCRYPT_BACKUP_FILE
+      ensure_in_gitignore_or_gitcrypt LETSENCRYPT_BACKUP_FILE
       sh "bosh ssh web -c 'sudo rm -rf /etc/letsencrypt /var/tmp/#{LETSENCRYPT_BACKUP_FILE}'"
 
       sh "bosh scp #{LETSENCRYPT_BACKUP_FILE} web:/var/tmp"
