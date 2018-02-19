@@ -169,6 +169,10 @@ module Concourse
       bosh_update_release "flavorjones/windows-ruby-dev-tools-release"
     end
 
+    def bosh_update_windows_utilities_release
+      bosh_update_release "cloudfoundry-incubator/windows-utilities-release"
+    end
+
     def bosh_deploy
       ensure_in_gitignore_or_gitcrypt BOSH_VARS_STORE
       sh "bosh deploy '#{BOSH_MANIFEST_FILE}' --vars-store=#{BOSH_VARS_STORE}"
@@ -293,6 +297,7 @@ module Concourse
                "bosh:update:concourse_release",
                "bosh:update:concourse_windows_release",
                "bosh:update:windows_ruby_dev_tools",
+               "bosh:update:windows_utilities_release",
              ]
 
         namespace "update" do
@@ -324,6 +329,11 @@ module Concourse
           desc "upload windows-ruby-dev-tools release to the director"
           task "windows_ruby_dev_tools" do
             bosh_update_windows_ruby_dev_tools
+          end
+
+          desc "upload windows-utilities release to the director"
+          task "windows_utilities_release" do
+            bosh_update_windows_utilities_release
           end
 
           desc "upload postgres release to the director"
