@@ -74,6 +74,7 @@ rake bosh:update:garden_runc_release        # upload garden release to the direc
 rake bosh:update:postgres_release           # upload postgres release to the director
 rake bosh:update:ubuntu_stemcell            # upload ubuntu stemcell to the director
 rake bosh:update:windows_ruby_dev_tools     # upload windows-ruby-dev-tools release to the director
+rake bosh:update:windows_utilities_release  # upload windows-utilities release to the director
 rake bosh:update:windows_stemcell           # upload windows stemcell to the director
 rake letsencrypt:backup                     # backup web:/etc/letsencrypt to local disk
 rake letsencrypt:create                     # create a cert
