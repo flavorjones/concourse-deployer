@@ -251,8 +251,8 @@ module Concourse
       sh "bosh ssh web -c 'sudo add-apt-repository -y ppa:certbot/certbot'"
       sh "bosh ssh web -c 'sudo apt-get update'"
       sh "bosh ssh web -c 'sudo apt-get install -y certbot'"
-      sh "bosh stop web"
       begin
+        sh "bosh stop web"
         sh "bosh ssh web -c 'sudo certbot renew'"
       ensure
         sh "bosh start web"
