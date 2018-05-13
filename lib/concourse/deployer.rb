@@ -107,7 +107,7 @@ module Concourse
 
     def bosh_update_stemcell name
       doc = Nokogiri::XML(open("https://bosh.io/stemcells/#{name}"))
-      url = doc.at_xpath("//span[@class='stemcell-name'][contains(text(), 'Light')]/../..//a[@title='#{name}']/@href")
+      url = doc.at_xpath("//a[contains(text(), 'Light Stemcell')]/@href")
       if url.nil?
         error "Could not find the latest stemcell `#{name}`"
       end
@@ -123,8 +123,8 @@ module Concourse
     end
 
     def bosh_update_release repo
-      doc = Nokogiri::XML(open("https://bosh.io/releases/github.com/#{repo}"))
-      url = doc.at_xpath("//a[text()='download']/@href")
+      doc = Nokogiri::XML(open("https://bosh.io/releases/github.com/#{repo}?all=1"))
+      url = doc.at_xpath("//a[contains(text(), 'Release Tarball')]/@href")
       if url.nil?
         error "Could not find the latest release `#{repo}`"
       end
