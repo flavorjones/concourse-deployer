@@ -1,6 +1,6 @@
 # Concourse::Deployer
 
-This gem provides a set of rake tasks to ease the installation and maintenance of a bbl-deployed bosh director, and a bosh-deployed concourse environment.
+This gem provides a set of rake tasks to ease the installation and maintenance of a `bbl`-deployed Bosh director, and a Bosh-deployed Concourse environment.
 
 
 ## TL;DR
@@ -8,9 +8,9 @@ This gem provides a set of rake tasks to ease the installation and maintenance o
 These five commands will give you a full concourse deployment:
 
 ``` sh
-rake bbl:gcp:init[your-unique-gcp-project-name]
+rake bbl:gcp:init[GCP_PROJECT_ID]
 rake bbl:gcp:up
-rake bosh:init[your-concourse-domain]
+rake bosh:init or rake bosh:init[DNS_NAME]
 rake bosh:update
 rake bosh:deploy
 ```
@@ -71,34 +71,38 @@ rake bosh:update:windows_utilities_release  # upload windows-utilities release t
 rake bosh:update:windows_stemcell           # upload windows stemcell to the director
 rake letsencrypt:backup                     # backup web:/etc/letsencrypt to local disk
 rake letsencrypt:create                     # create a cert
-rake letsencrypt:import                     # import letsencrypt keys into `private.yml` from backup
+rake letsencrypt:import                     # import letsencrypt keys into `secrets.yml` from backup
 rake letsencrypt:renew                      # renew the certificate
 rake letsencrypt:restore                    # restore web:/etc/letsencrypt from backup
 ```
 
 ## A Note on Security
 
-It's incredibly important that you don't leak your credentials by committing them to a public git repository. This gem will `.gitignore` a set of files that contain sensitive credentials. However, this means you'll need to find your own way to keep them private and safe (I recommend a password vault).
+It's incredibly important that you don't risk leaking your credentials by committing them in the clear to a public git repository. This gem will use `git-crypt` to ensure the files are encrypted that contain sensitive credentials.
 
-Files it's OK to commit to a public repo, because they contain no sensitive data:
-
-* `.envrc`
-* `concourse.yml`
-* `cloud-config.yml`
-
-Files it's NOT OK to be public, because they contain sensitive data:
+Files that contain sensitive data:
 
 * `bbl-state.json`
-* `concourse.atc.pg.gz`
-* `letsencrypt.tar.gz`
-* `private.yml`
-* `rsa_ssh`
+* `secrets.yml`
+* `cluster-creds.yml`
 * `service-account.key.json`
+* the `vars` subdirectory
 
-If you've installed `git-crypt`, then you should move each of these files from your `.gitignore` into your `.gitattributes` specifying `filter=git-crypt diff=git-crypt` for each.
+You will see these files listed in `.gitattributes` invoking git-crypt for them.
+
+* TODO `concourse.atc.pg.gz` ?
+* TODO `letsencrypt.tar.gz` ?
 
 
 ## Deploying to GCP
+
+### Step 0: create a postgres database on GCP
+
+Note the following information:
+
+* password
+* IP address
+
 
 ### Step 1: initialize
 
@@ -108,15 +112,15 @@ $ rake bbl:gcp:init[your-unique-gcp-project-name]
 
 This will:
 
-* create `.gitignore` entries to prevent sensitive files from being committed,
 * check that required dependencies are installed,
 * create an `.envrc` file with environment variables for bbl to work with GCP,
+* create `.gitattributes` entries to prevent sensitive files from being committed,
 * create a GCP service account, associate it with your project, and give it the necessary permissions,
 * and save that GCP service account information in `service-account.key.json`
 
-__NOTE:__ At this point, if you want to use a region/zone besides us-east1/us-east1-b, you can edit your `.envrc`.
+__NOTE:__ At this point, if you want to use a region/zone besides us-central1, you can edit your `.envrc`.
 
-__NOTE:__ `service-account.key.json` is sensitive and should NOT be committed to a public repo.
+__NOTE:__ `service-account.key.json` contains sensitive data.
 
 
 ### Step 2: bbl up
@@ -128,28 +132,29 @@ $ rake bbl:gcp:up
 Go get a coffee. In about 5 minutes, this will:
 
 * terraform a GCP environment,
-* with a VM running a bosh director,
-* put a load balancer in front of it, ready for concourse to be installed,
-* and save your state and credentials into `bbl-state.json`.
+* spin up VMs running a bosh director and a jumpbox (a.k.a. "bastion host"),
+* create a load balancer with an external IP,
+* and save your state and credentials into `bbl-state.json` and the `vars` subdirectory.
 
-__NOTE:__ This task is idempotent! If you want to upgrade your bosh director (or stemcell) using a future version of bbl, you should re-run this.
+__NOTE:__ This task is idempotent. If you want to upgrade your bosh director (or stemcell) using a future version of bbl, you can re-run this (but read the bbl upgrade notes first).
 
-__NOTE:__ `bbl-state.json` is sensitive and should NOT be committed to a public repo.
+__NOTE:__ `bbl-state.json` contains sensitive data.
 
 
-### Step 3: prepare a bosh manifest for your concourse deployment
+### Step 3: prepare the concourse bosh deployment
 
 ``` sh
-$ rake bosh:init[your-concourse-domain]
+$ rake bosh:init
 ```
 
 This will:
 
-* generate a bosh manifest, `concourse.yml`, to deploy concourse
+* clone a git submodule with a version of `concourse-bosh-deployment`
+* create a `secrets.yml` file with credentials and external configuration you'll use to access concourse
 
-__NOTE:__ `<your-concourse-domain>` is the DNS hostname at which concourse will be running
+__NOTE:__ `secrets.yml` contains sensitive data.
 
-__NOTE:__ `concourse.yml` can and should be edited by you!
+__NOTE:__ This task is idempotent! You can re-run this whenever you like.
 
 
 ### Step 4: upload releases and stemcell to the director
@@ -161,7 +166,10 @@ $ rake bosh:update
 This will:
 
 * upload to the director the latest bosh releases for concourse, runC, and others
-* upload to the director the latest gcp lite stemcells
+* upload to the director the latest GCP stemcells
+* create or update a `cluster-creds.yml` file with cluster credentials
+
+__NOTE:__ `cluster-creds.yml` contains sensitive data.
 
 __NOTE:__ This task is idempotent! If you want to upgrade your releases or stemcell in the future, you should re-run this.
 
@@ -175,10 +183,10 @@ $ rake bosh:deploy
 This will:
 
 * automatically generate all credentials (including key pairs and a self-signed cert),
-* and save those credentials to `private.yml`.
-* deploy `concourse.yml` using the credentials set in `private.yml`.
+* and save those credentials to `secrets.yml`.
+* deploy `concourse.yml` using the credentials set in `secrets.yml`.
 
-__NOTE:__ `private.yml` is sensitive and should NOT be committed to a public repo.
+__NOTE:__ `secrets.yml` is sensitive and should NOT be committed to a public repo.
 
 __NOTE:__ This task is idempotent! Yay bosh. Edit `concourse.yml` and re-run this task to update your deployment.
 
@@ -234,8 +242,8 @@ The gem is available as open source under the terms of the [MIT License](http://
 
 Things remaining to do:
 
-- [ ] use DNS name
-- [ ] use external postgres database
+- [x] use external postgres database
+- [x] use DNS name
 - [ ] test letsencrypt certificate tasks
 - [ ] update windows stemcell
 - [ ] include windows worker in manifest
@@ -243,6 +251,7 @@ Things remaining to do:
 
 Things to follow up on:
 
+- [ ] use external postgres database SSL certs
 - [ ] bbl feature for suspending/unsuspending the director VM?
 - [ ] stack driver add-on
 - [ ] atc encryption key https://concourse.ci/encryption.html
