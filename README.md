@@ -243,6 +243,11 @@ $ rake letsencrypt:renew
 __NOTE:__ These tasks will create and use `letsencrypt.tar.gz` containing your cert's private key, which should NOT be committed to a public git repo.
 
 
+### Custom ops files
+
+If you want to perform any custom operations on the manifest, put them in a file named `operations.yml` and they'll be pulled in as the __last__ ops file during deployment.
+
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/flavorjones/concourse-deployer. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.

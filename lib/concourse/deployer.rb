@@ -18,6 +18,7 @@ module Concourse
 
     BOSH_SECRETS             = "secrets.yml"
     BOSH_VARS_STORE          = "cluster-creds.yml"
+    BOSH_OPERATIONS          = "operations.yml"
 
     # BOSH_MANIFEST_FILE       = "concourse.yml"
     # BOSH_MANIFEST_ERB_FILE   = "concourse.yml.erb"
@@ -166,6 +167,7 @@ module Concourse
         c << "-o operations/external-postgres.yml"
         c << "-o operations/external-postgres-tls.yml"
         c << "-o operations/external-postgres-client-cert.yml"
+        c << "-o ../../#{BOSH_OPERATIONS}" if File.exists?(BOSH_OPERATIONS)
         c << "--var network_name=default"
         c << "--var external_host='#{external_dns_name}'"
         c << "--var external_url='#{external_url}'"
