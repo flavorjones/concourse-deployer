@@ -234,17 +234,16 @@ The gem is available as open source under the terms of the [MIT License](http://
 
 Things remaining to do:
 
-- [x] generate credentials
-- [x] update windows stemcell
-- [x] include windows worker in manifest
-- [x] concourse:backup and concourse:restore
-- [x] cloud-config:download and cloud-config:upload (do we really need this?)
-- [x] see how it performs with f1-micro instances for workers? [pretty good!]
-- [x] update bosh manifest for cost savings (see below)
-- [x] letsencrypt certificate tasks
-- [x] deploy windows ruby tools release to the windows vms
-- [x] support using git-crypt for sensitive information
-- [ ] send PR to bbl for suspending/unsuspending the director VM
+- [ ] use DNS name
+- [ ] use external postgres database
+- [ ] test letsencrypt certificate tasks
+- [ ] update windows stemcell
+- [ ] include windows worker in manifest
+- [ ] deploy windows ruby tools release to the windows vms
+
+Things to follow up on:
+
+- [ ] bbl feature for suspending/unsuspending the director VM?
 - [ ] stack driver add-on
 - [ ] atc encryption key https://concourse.ci/encryption.html
 
