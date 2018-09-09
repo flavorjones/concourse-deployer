@@ -2,8 +2,6 @@
 
 This gem provides a set of rake tasks to ease the installation and maintenance of a bbl-deployed bosh director, and a bosh-deployed concourse environment.
 
-__NOTE:__ I'm practicing README-driven development, so until I actually cut a release, YMMV.
-
 
 ## TL;DR
 
@@ -22,17 +20,12 @@ rake bosh:deploy
 
 This gem requires:
 
-* `bbl` ~> 3.2.0 (https://github.com/cloudfoundry/bosh-bootloader/releases)
-* `bosh` ~> 2.0.0 (https://github.com/cloudfoundry/bosh-cli/releases)
+* `bbl` ~> 6.9.0 (https://github.com/cloudfoundry/bosh-bootloader/releases)
+* `bosh` ~> 5.2.0 (https://github.com/cloudfoundry/bosh-cli/releases)
 * `terraform` (https://www.terraform.io/downloads.html)
-
-If you're deploying to GCP, this gem also requires:
-
 * `gcloud` (https://cloud.google.com/sdk/downloads)
-
-Finally, it's recommended that you use:
-
 * `direnv` (https://direnv.net/)
+* `git-crypt` (https://www.agwa.name/projects/git-crypt/)
 
 
 ## Installation
