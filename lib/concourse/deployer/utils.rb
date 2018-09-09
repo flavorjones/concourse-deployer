@@ -105,7 +105,6 @@ module Concourse
         repo_name = File.basename repo_url
         sh "git submodule add '#{repo_url}'" unless Dir.exists?(repo_name)
         Dir.chdir(repo_name) do
-          sh "git pull"
           sh "git checkout '#{commitish}'"
         end
       end
@@ -136,6 +135,14 @@ module Concourse
           else
             return answer
           end
+        end
+      end
+
+      def prompt_for_file_contents query
+        loop do
+          path = prompt query
+          return File.read(path) if File.exists?(path)
+          error("File '#{path}' does not exist.", true)
         end
       end
 

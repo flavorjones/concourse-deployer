@@ -79,13 +79,13 @@ module Concourse
       ensure_in_gitcrypt BOSH_SECRETS
 
       bosh_secrets do |v|
-        v["local_user"] ||= {}.tap do |local_user|
+        v["local_user"] = (v["local_user"] || {}).tap do |local_user|
           local_user["username"] = "concourse"
-          local_user["password"] = if which "apg"
-                                     `apg -n1`.strip
-                                   else
-                                     prompt "Please enter a password"
-                                   end
+          local_user["password"] ||= if which "apg"
+                                       `apg -n1`.strip
+                                     else
+                                       prompt "Please enter a password"
+                                     end
         end
 
         v["external_dns_name"] ||= prompt("Please enter a DNS name if you have one", bbl_external_ip)
@@ -94,6 +94,14 @@ module Concourse
         v["postgres_port"] ||= prompt("External postgres port", 5432)
         v["postgres_role"] ||= prompt("External postgres role", "postgres")
         v["postgres_password"] ||= prompt("External postgres password")
+
+        v["postgres_client_cert"] = (v["postgres_client_cert"] || {}).tap do |cert|
+          cert["certificate"] ||= prompt_for_file_contents "Path to client-cert.pem"
+          cert["private_key"] ||= prompt_for_file_contents "Path to client-key.pem" 
+        end
+        v["postgres_ca_cert"] = (v["postgres_ca_cert"] || {}).tap do |cert|
+          cert["certificate"] ||= prompt_for_file_contents "Path to server-ca.pem"
+        end
       end
     end
 
@@ -145,6 +153,7 @@ module Concourse
       # command will be run in the bosh deployment submodule's cluster directory
       command = [].tap do |c|
         c << "bosh deploy -d concourse concourse.yml"
+        # c << "--no-redact" # DEBUG
         c << "-l ../versions.yml"
         c << "-l ../../#{BOSH_SECRETS}"
         c << "--vars-store ../../#{BOSH_VARS_STORE}"
@@ -155,12 +164,12 @@ module Concourse
         c << "-o operations/tls-vars.yml"
         c << "-o operations/web-network-extension.yml"
         c << "-o operations/external-postgres.yml"
+        c << "-o operations/external-postgres-tls.yml"
+        c << "-o operations/external-postgres-client-cert.yml"
         c << "--var network_name=default"
         c << "--var external_host='#{external_dns_name}'"
         c << "--var external_url='#{external_url}'"
         c << "--var web_vm_type=default"
-        c << "--var db_vm_type=default"
-        c << "--var db_persistent_disk_type=10GB"
         c << "--var worker_vm_type=default"
         c << "--var deployment_name=concourse"
         c << "--var web_network_name=private"

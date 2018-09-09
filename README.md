@@ -96,12 +96,21 @@ You will see these files listed in `.gitattributes` invoking git-crypt for them.
 
 ## Deploying to GCP
 
-### Step 0: create a postgres database on GCP
+### Step 0: create a GCP project, and create and config a postgres database
 
-Note the following information:
+Spin up a postgres database. Note the following information:
 
 * password
 * IP address
+
+To set up connectivity to it, we'll first create client SSL certs, then only allow access with SSL, and finally allow inbound connections from any source IP.
+
+1. Under "SSL", create a client SSL cert, and download `client-key.pem`, `client-cert.pem`, and `server-ca.pem` for later use.
+2. Click "Allow only secured connections"
+3. Under "Authorization", add "0.0.0.0/0" as an allowed network.
+4. Under "Databases", create a database named `atc`.
+
+Using an external db is a little annoying to do, but in the opinion of the author, it's worth it to have state persisted outside of the bosh-administered cluster, so that it can be torn down and rebuilt easily when necessary.
 
 
 ### Step 1: initialize
@@ -151,6 +160,12 @@ This will:
 
 * clone a git submodule with a version of `concourse-bosh-deployment`
 * create a `secrets.yml` file with credentials and external configuration you'll use to access concourse
+
+You may be prompted for several things at this step, including:
+
+* postgres host and password
+* postgres server CA, client cert, and client key filenames (downloaded in Step 0 above)
+
 
 __NOTE:__ `secrets.yml` contains sensitive data.
 
@@ -244,14 +259,14 @@ Things remaining to do:
 
 - [x] use external postgres database
 - [x] use DNS name
-- [ ] test letsencrypt certificate tasks
+- [x] use external postgres database SSL certs
+- [ ] rewrite letsencrypt certificate tasks
 - [ ] update windows stemcell
 - [ ] include windows worker in manifest
 - [ ] deploy windows ruby tools release to the windows vms
 
 Things to follow up on:
 
-- [ ] use external postgres database SSL certs
 - [ ] bbl feature for suspending/unsuspending the director VM?
 - [ ] stack driver add-on
 - [ ] atc encryption key https://concourse.ci/encryption.html
