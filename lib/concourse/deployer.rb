@@ -177,6 +177,7 @@ module Concourse
         c << "-o operations/external-postgres.yml"
         c << "-o operations/external-postgres-tls.yml"
         c << "-o operations/external-postgres-client-cert.yml"
+        c << "-o operations/worker-ephemeral-disk.yml"
         c << "-o ../../#{BOSH_OPERATIONS}" if File.exists?(BOSH_OPERATIONS)
         c << "-o operations/github-auth.yml" if bosh_secrets["github_client"]
         c << "--var network_name=default"
@@ -184,6 +185,7 @@ module Concourse
         c << "--var external_url='#{external_url}'"
         c << "--var web_vm_type=default"
         c << "--var worker_vm_type=default"
+        c << "--var worker_ephemeral_disk=50GB_ephemeral_disk"
         c << "--var deployment_name=#{BOSH_DEPLOYMENT}"
         c << "--var web_network_name=private"
         c << "--var web_network_vm_extension=lb"
