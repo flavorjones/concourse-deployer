@@ -10,7 +10,7 @@ These five commands will give you a full concourse deployment:
 ``` sh
 rake bbl:gcp:init[GCP_PROJECT_ID]
 rake bbl:gcp:up
-rake bosh:init or rake bosh:init[DNS_NAME]
+rake bosh:init
 rake bosh:update
 rake bosh:deploy
 ```
@@ -87,11 +87,9 @@ Files that contain sensitive data:
 * `cluster-creds.yml`
 * `service-account.key.json`
 * the `vars` subdirectory
+* `letsencrypt.tar.gz` (if you're using the letsencrypt SSL cert functionality)
 
 You will see these files listed in `.gitattributes` invoking git-crypt for them.
-
-* TODO `concourse.atc.pg.gz` ?
-* TODO `letsencrypt.tar.gz` ?
 
 
 ## Deploying to GCP

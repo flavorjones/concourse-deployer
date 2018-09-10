@@ -16,17 +16,12 @@ module Concourse
     BBL_STATE_FILE           = "bbl-state.json"
     BBL_VARS_DIR             = "vars"
 
+    BOSH_DEPLOYMENT          = "concourse"
     BOSH_SECRETS             = "secrets.yml"
     BOSH_VARS_STORE          = "cluster-creds.yml"
     BOSH_OPERATIONS          = "operations.yml"
 
-    # BOSH_MANIFEST_FILE       = "concourse.yml"
-    # BOSH_MANIFEST_ERB_FILE   = "concourse.yml.erb"
-    # CONCOURSE_DB_BACKUP_FILE = "concourse.atc.pg.gz"
-    # LETSENCRYPT_BACKUP_FILE  = "letsencrypt.tar.gz"
-
-    # PG_PATH = "/var/vcap/packages/postgres-9*/bin"
-    # PG_USER = "vcap"
+    LETSENCRYPT_BACKUP_FILE  = "letsencrypt.tar.gz"
 
     def bbl_init
       unless_which "bbl", "https://github.com/cloudfoundry/bosh-bootloader/releases"
@@ -78,6 +73,7 @@ module Concourse
     def bosh_init
       ensure_git_submodule "https://github.com/concourse/concourse-bosh-deployment", "master"
       ensure_in_gitcrypt BOSH_SECRETS
+      ensure_in_envrc "BOSH_DEPLOYMENT", BOSH_DEPLOYMENT
 
       bosh_secrets do |v|
         v["local_user"] = (v["local_user"] || {}).tap do |local_user|
@@ -153,7 +149,7 @@ module Concourse
 
       # command will be run in the bosh deployment submodule's cluster directory
       command = [].tap do |c|
-        c << "bosh deploy -d concourse concourse.yml"
+        c << "bosh deploy concourse.yml"
         # c << "--no-redact" # DEBUG
         c << "-l ../versions.yml"
         c << "-l ../../#{BOSH_SECRETS}"
@@ -173,7 +169,7 @@ module Concourse
         c << "--var external_url='#{external_url}'"
         c << "--var web_vm_type=default"
         c << "--var worker_vm_type=default"
-        c << "--var deployment_name=concourse"
+        c << "--var deployment_name=#{BOSH_DEPLOYMENT}"
         c << "--var web_network_name=private"
         c << "--var web_network_vm_extension=lb"
       end.join(" ")
@@ -183,86 +179,67 @@ module Concourse
       end
     end
 
-    # def bosh_concourse_backup
-    #   ensure_in_gitignore CONCOURSE_DB_BACKUP_FILE
+    def letsencrypt_create
+      external_dns_name = bosh_secrets['external_dns_name']
+      if external_dns_name == bbl_external_ip
+        error "Please set your external DNS name in #{BOSH_SECRETS}"
+      end
 
-    #   sh "bosh ssh db 'rm -rf /tmp/#{CONCOURSE_DB_BACKUP_FILE}'"
-    #   sh "bosh ssh db '#{PG_PATH}/pg_dumpall -c --username=#{PG_USER} | gzip > /tmp/#{CONCOURSE_DB_BACKUP_FILE}'"
-    #   sh "bosh scp db:/tmp/#{CONCOURSE_DB_BACKUP_FILE} ."
-    # end
+      sh "bosh ssh web -c 'sudo chmod 777 /tmp'"
+      sh "bosh ssh web -c 'sudo add-apt-repository -y ppa:certbot/certbot'"
+      sh "bosh ssh web -c 'sudo apt-get update'"
+      sh "bosh ssh web -c 'sudo apt-get install -y certbot'"
+      begin
+        sh "bosh stop web"
+        note "logging you into the web server. run this command: sudo certbot certonly --standalone -d \"#{external_dns_name}\""
+        sh "bosh ssh web"
+      ensure
+        sh "bosh start web"
+      end
+    end
 
-    # def bosh_concourse_restore
-    #   ensure_in_gitignore CONCOURSE_DB_BACKUP_FILE
+    def letsencrypt_backup
+      ensure_in_gitcrypt LETSENCRYPT_BACKUP_FILE
+      sh %Q{bosh ssh web -c 'sudo tar -zcvf /var/tmp/#{LETSENCRYPT_BACKUP_FILE} -C /etc letsencrypt'}
+      sh %Q{bosh scp web:/var/tmp/#{LETSENCRYPT_BACKUP_FILE} .}
+    end
 
-    #   sh "bosh stop" # everything
-    #   sh "bosh start db" # so we can load the db
+    def letsencrypt_import
+      ensure_in_gitcrypt LETSENCRYPT_BACKUP_FILE
+      external_dns_name = bosh_secrets['external_dns_name']
 
-    #   sh "bosh scp #{CONCOURSE_DB_BACKUP_FILE} db:/tmp"
-    #   sh "bosh ssh db 'gunzip -c /tmp/#{CONCOURSE_DB_BACKUP_FILE} | #{PG_PATH}/psql --username=#{PG_USER} postgres'"
+      begin
+        sh "tar -zxf #{LETSENCRYPT_BACKUP_FILE}"
+        note "importing certificate and private key for #{external_dns_name} ..."
+        bosh_secrets do |v|
+          v["atc_tls"] ||= {}
+          v["atc_tls"]["certificate"] = File.read "letsencrypt/live/#{external_dns_name}/fullchain.pem"
+          v["atc_tls"]["private_key"] = File.read "letsencrypt/live/#{external_dns_name}/privkey.pem"
+        end
+      ensure
+        sh "rm -rf letsencrypt"
+      end
+    end
 
-    #   sh "bosh start" # everything, and migrate the db if necessary
-    # end
+    def letsencrypt_restore
+      ensure_in_gitcrypt LETSENCRYPT_BACKUP_FILE
+      sh "bosh ssh web -c 'sudo rm -rf /etc/letsencrypt /var/tmp/#{LETSENCRYPT_BACKUP_FILE}'"
+      sh "bosh scp #{LETSENCRYPT_BACKUP_FILE} web:/var/tmp"
+      sh "bosh ssh web -c 'sudo tar -zxvf /var/tmp/#{LETSENCRYPT_BACKUP_FILE} -C /etc'"
+      sh "bosh ssh web -c 'sudo chown -R root:root /etc/letsencrypt'"
+    end
 
-    # def dns_name
-    #   @dns_name ||= YAML.load_file(BOSH_MANIFEST_FILE)["variables"].find {|h| h["name"] == "atc_tls"}["options"]["common_name"]
-    # end
-
-    # def letsencrypt_create
-    #   sh "bosh ssh web -c 'sudo add-apt-repository -y ppa:certbot/certbot'"
-    #   sh "bosh ssh web -c 'sudo apt-get update'"
-    #   sh "bosh ssh web -c 'sudo apt-get install -y certbot'"
-    #   sh "bosh stop web"
-    #   begin
-    #     note "logging you into the web server. run this command: sudo certbot certonly --standalone -d \"#{dns_name}\""
-    #     sh "bosh ssh web"
-    #   ensure
-    #     sh "bosh start web"
-    #   end
-    # end
-
-    # def letsencrypt_backup
-    #   ensure_in_gitignore_or_gitcrypt LETSENCRYPT_BACKUP_FILE
-    #   sh %Q{bosh ssh web -c 'sudo tar -zcvf /var/tmp/#{LETSENCRYPT_BACKUP_FILE} -C /etc letsencrypt'}
-    #   sh %Q{bosh scp web:/var/tmp/#{LETSENCRYPT_BACKUP_FILE} .}
-    # end
-
-    # def letsencrypt_import
-    #   ensure_in_gitignore_or_gitcrypt LETSENCRYPT_BACKUP_FILE
-    #   sh "tar -zxf #{LETSENCRYPT_BACKUP_FILE}"
-    #   begin
-    #     note "importing certificate and private key for #{dns_name} ..."
-    #     private = YAML.load_file BOSH_VARS_STORE
-    #     private["atc_tls"]["certificate"] = File.read "letsencrypt/live/#{dns_name}/fullchain.pem"
-    #     private["atc_tls"]["private_key"] = File.read "letsencrypt/live/#{dns_name}/privkey.pem"
-    #     private["atc_tls"].delete("ca")
-    #     File.open BOSH_VARS_STORE, "w" do |f|
-    #       f.write private.to_yaml
-    #     end
-    #   ensure
-    #     sh "rm -rf letsencrypt"
-    #   end
-    # end
-
-    # def letsencrypt_restore
-    #   ensure_in_gitignore_or_gitcrypt LETSENCRYPT_BACKUP_FILE
-    #   sh "bosh ssh web -c 'sudo rm -rf /etc/letsencrypt /var/tmp/#{LETSENCRYPT_BACKUP_FILE}'"
-
-    #   sh "bosh scp #{LETSENCRYPT_BACKUP_FILE} web:/var/tmp"
-    #   sh "bosh ssh web -c 'sudo tar -zxvf /var/tmp/#{LETSENCRYPT_BACKUP_FILE} -C /etc'"
-    #   sh "bosh ssh web -c 'sudo chown -R root:root /etc/letsencrypt'"
-    # end
-
-    # def letsencrypt_renew
-    #   sh "bosh ssh web -c 'sudo add-apt-repository -y ppa:certbot/certbot'"
-    #   sh "bosh ssh web -c 'sudo apt-get update'"
-    #   sh "bosh ssh web -c 'sudo apt-get install -y certbot'"
-    #   begin
-    #     sh "bosh stop web"
-    #     sh "bosh ssh web -c 'sudo certbot renew'"
-    #   ensure
-    #     sh "bosh start web"
-    #   end
-    # end
+    def letsencrypt_renew
+      sh "bosh ssh web -c 'sudo add-apt-repository -y ppa:certbot/certbot'"
+      sh "bosh ssh web -c 'sudo apt-get update'"
+      sh "bosh ssh web -c 'sudo apt-get install -y certbot'"
+      begin
+        sh "bosh stop web"
+        sh "bosh ssh web -c 'sudo certbot renew'"
+      ensure
+        sh "bosh start web"
+      end
+    end
 
     def create_tasks!
       namespace "bbl" do
@@ -284,7 +261,7 @@ module Concourse
       end
 
       namespace "bosh" do
-        desc "prepare the concourse bosh deployment (dns_name is optional)"
+        desc "prepare the concourse bosh deployment"
         task "init" do
           bosh_init
         end
@@ -292,13 +269,6 @@ module Concourse
         desc "upload stemcells and releases to the director"
         task "update" => [
                "bosh:update:ubuntu_stemcell",
-    #            "bosh:update:windows_stemcell",
-    #            "bosh:update:garden_runc_release",
-    #            "bosh:update:postgres_release",
-    #            "bosh:update:concourse_release",
-    #            "bosh:update:concourse_windows_release",
-    #            "bosh:update:windows_ruby_dev_tools",
-    #            "bosh:update:windows_utilities_release",
              ]
 
         namespace "update" do
@@ -307,97 +277,73 @@ module Concourse
             bosh_update_ubuntu_stemcell
           end
 
-    #       desc "upload windows stemcell to the director"
-    #       task "windows_stemcell" do
-    #         bosh_update_windows_stemcell
-    #       end
+#       desc "upload windows stemcell to the director"
+#       task "windows_stemcell" do
+#         bosh_update_windows_stemcell
+#       end
 
-    #       desc "upload garden release to the director"
-    #       task "garden_runc_release" do
-    #         bosh_update_garden_runc_release
-    #       end
+#       desc "upload garden release to the director"
+#       task "garden_runc_release" do
+#         bosh_update_garden_runc_release
+#       end
 
-    #       desc "upload concourse release to the director"
-    #       task "concourse_release" do
-    #         bosh_update_concourse_release
-    #       end
+#       desc "upload concourse release to the director"
+#       task "concourse_release" do
+#         bosh_update_concourse_release
+#       end
 
-    #       desc "upload concourse windows release to the director"
-    #       task "concourse_windows_release" do
-    #         bosh_update_concourse_windows_release
-    #       end
+#       desc "upload concourse windows release to the director"
+#       task "concourse_windows_release" do
+#         bosh_update_concourse_windows_release
+#       end
 
-    #       desc "upload windows-ruby-dev-tools release to the director"
-    #       task "windows_ruby_dev_tools" do
-    #         bosh_update_windows_ruby_dev_tools
-    #       end
+#       desc "upload windows-ruby-dev-tools release to the director"
+#       task "windows_ruby_dev_tools" do
+#         bosh_update_windows_ruby_dev_tools
+#       end
 
-    #       desc "upload windows-utilities release to the director"
-    #       task "windows_utilities_release" do
-    #         bosh_update_windows_utilities_release
-    #       end
+#       desc "upload windows-utilities release to the director"
+#       task "windows_utilities_release" do
+#         bosh_update_windows_utilities_release
+#       end
 
-    #       desc "upload postgres release to the director"
-    #       task "postgres_release" do
-    #         bosh_update_postgres_release
-    #       end
+          # desc "upload postgres release to the director"
+          # task "postgres_release" do
+          #   bosh_update_postgres_release
+          # end
         end
 
         desc "deploy concourse"
         task "deploy" do
           bosh_deploy
         end
+      end
 
-    #     namespace "concourse" do
-    #       desc "backup your concourse database to `#{CONCOURSE_DB_BACKUP_FILE}`"
-    #       task "backup" do
-    #         bosh_concourse_backup
-    #       end
+      namespace "letsencrypt" do
+        desc "create a cert"
+        task "create" do
+          letsencrypt_create
+        end
 
-    #       desc "restore your concourse database from `#{CONCOURSE_DB_BACKUP_FILE}`"
-    #       task "restore" do
-    #         bosh_concourse_restore
-    #       end
-    #     end
+        desc "backup web:/etc/letsencrypt to local disk"
+        task "backup" do
+          letsencrypt_backup
+        end
 
-    #     namespace "cloud-config" do
-    #       desc "download the bosh cloud config to `cloud-config.yml`"
-    #       task "download" do
-    #         sh "bosh cloud-config > cloud-config.yml"
-    #       end
+        desc "import letsencrypt keys into `#{BOSH_VARS_STORE}` from backup"
+        task "import" do
+          letsencrypt_import
+        end
 
-    #       desc "upload a bosh cloud config from `cloud-config.yml`"
-    #       task "upload" do
-    #         sh "bosh update-cloud-config cloud-config.yml"
-    #       end
-    #     end
-    #   end
+        desc "restore web:/etc/letsencrypt from backup"
+        task "restore" do
+          letsencrypt_restore
+        end
 
-    #   namespace "letsencrypt" do
-    #     desc "create a cert"
-    #     task "create" do
-    #       letsencrypt_create
-    #     end
-
-    #     desc "backup web:/etc/letsencrypt to local disk"
-    #     task "backup" do
-    #       letsencrypt_backup
-    #     end
-
-    #     desc "import letsencrypt keys into `#{BOSH_VARS_STORE}` from backup"
-    #     task "import" do
-    #       letsencrypt_import
-    #     end
-
-    #     desc "restore web:/etc/letsencrypt from backup"
-    #     task "restore" do
-    #       letsencrypt_restore
-    #     end
-
-    #     desc "renew the certificate"
-    #     task "renew" do
-    #       letsencrypt_renew
-    #     end
+        desc "renew the certificate"
+        task "renew" do
+          letsencrypt_renew
+        end
       end
     end
   end
