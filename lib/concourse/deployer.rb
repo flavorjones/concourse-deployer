@@ -10,28 +10,20 @@ module Concourse
     include Rake::DSL
     include Concourse::Deployer::Utils
 
-    GITIGNORE_FILE           = ".gitignore"
-    GITATTRIBUTES_FILE       = ".gitattributes"
-    BBL_STATE_FILE           = "bbl-state.json"
     GCP_SERVICE_ACCOUNT_FILE = "service-account.key.json"
     ENVRC_FILE               = ".envrc"
-    BOSH_MANIFEST_FILE       = "concourse.yml"
-    BOSH_MANIFEST_ERB_FILE   = "concourse.yml.erb"
-    BOSH_RSA_KEY             = "rsa_ssh"
-    BOSH_VARS_STORE          = "private.yml"
-    CONCOURSE_DB_BACKUP_FILE = "concourse.atc.pg.gz"
+
+    BBL_STATE_FILE           = "bbl-state.json"
+    BBL_VARS_DIR             = "vars"
+
+    BOSH_DEPLOYMENT          = "concourse"
+    BOSH_SECRETS             = "secrets.yml"
+    BOSH_VARS_STORE          = "cluster-creds.yml"
+    BOSH_OPERATIONS          = "operations.yml"
+
     LETSENCRYPT_BACKUP_FILE  = "letsencrypt.tar.gz"
 
-    PG_PATH = "/var/vcap/packages/postgres-9*/bin"
-    PG_USER = "vcap"
-
-    def sh command
-      running command
-      super command, verbose: false
-    end
-
     def bbl_init
-      ensure_in_gitignore_or_gitcrypt BBL_STATE_FILE
       unless_which "bbl", "https://github.com/cloudfoundry/bosh-bootloader/releases"
       unless_which "bosh", "https://github.com/cloudfoundry/bosh-cli/releases"
       unless_which "terraform", "https://www.terraform.io/downloads.html"
@@ -46,13 +38,12 @@ module Concourse
 
     def bbl_gcp_init project_id
       bbl_init
-      ensure_in_gitignore_or_gitcrypt GCP_SERVICE_ACCOUNT_FILE
       unless_which "gcloud", "https://cloud.google.com/sdk/downloads"
-
+      ensure_in_gitcrypt GCP_SERVICE_ACCOUNT_FILE
       ensure_in_envrc "BBL_GCP_PROJECT_ID", project_id
+      ensure_in_envrc "BBL_IAAS", "gcp"
+      ensure_in_envrc "BBL_GCP_REGION", "us-central1"
       ensure_in_envrc "BBL_GCP_SERVICE_ACCOUNT_KEY", GCP_SERVICE_ACCOUNT_FILE
-      ensure_in_envrc "BBL_GCP_ZONE", "us-east1-b"
-      ensure_in_envrc "BBL_GCP_REGION", "us-east1"
 
       if bbl_gcp_prompt_for_service_account
         service_account_name = "concourse-bbl-service-account"
@@ -61,154 +52,163 @@ module Concourse
         sh %Q{gcloud --project=#{project_id} iam service-accounts keys create '#{GCP_SERVICE_ACCOUNT_FILE}' --iam-account '#{service_account_name}@#{project_id}.iam.gserviceaccount.com'}
         sh %Q{gcloud projects add-iam-policy-binding '#{project_id}' --member 'serviceAccount:#{service_account_name}@#{project_id}.iam.gserviceaccount.com' --role 'roles/editor'}
       end
-
-      important "Please make sure to save '#{GCP_SERVICE_ACCOUNT_FILE}' somewhere private and safe."
     end
 
     def bbl_gcp_up
-      ensure_in_gitignore_or_gitcrypt BOSH_RSA_KEY
-      ensure_in_envrc "BOSH_GW_PRIVATE_KEY", BOSH_RSA_KEY
-
       unless ENV['BBL_GCP_PROJECT_ID']
         error "Environment variable BBL_GCP_PROJECT_ID is not set. Did you run `rake bbl:gcp:init` and `direnv allow`?"
       end
+
+      ensure_in_gitcrypt BBL_STATE_FILE
+      ensure_in_gitcrypt "#{BBL_VARS_DIR}/*"
+      ensure_in_envrc 'eval "$(bbl print-env)"'
+
+      note ""
       note "running `bbl up` on GCP ... go get a coffee."
-      note "If you get an error about 'Access Not Configured', follow the URL in the error message and enable API access for your project!"
-      sh "bbl up --iaas gcp"
-      sh "bbl create-lbs --type concourse"
-
-      sh "bbl ssh-key > #{BOSH_RSA_KEY}"
-      sh "chmod go-rwx #{BOSH_RSA_KEY}"
+      note "(If you get an error about 'Access Not Configured', follow the URL in the error message and enable API access for your project!)"
+      note ""
+      sh "bbl up --lb-type concourse"
     end
 
-    def bosh_prompt_to_overwrite_bosh_manifest
-      return true unless File.exist?(BOSH_MANIFEST_FILE)
+    def bosh_init
+      ensure_git_submodule "https://github.com/concourse/concourse-bosh-deployment", "master"
+      ensure_in_gitcrypt BOSH_SECRETS
+      ensure_in_envrc "BOSH_DEPLOYMENT", BOSH_DEPLOYMENT
 
-      overwrite = prompt "A #{BOSH_MANIFEST_FILE} file already exists. Do you want to overwrite it? (y/n)", "n"
-      return !! (overwrite =~ /^y/i)
-    end
-
-    def bosh_init dns_name
-      ensure_in_envrc "BOSH_CLIENT", "`bbl director-username`"
-      ensure_in_envrc "BOSH_CLIENT_SECRET", "`bbl director-password`"
-      ensure_in_envrc "BOSH_CA_CERT", "`bbl director-ca-cert`"
-      ensure_in_envrc "BOSH_ENVIRONMENT", "`bbl director-address`"
-      ensure_in_envrc "BOSH_DEPLOYMENT", "concourse"
-
-      if bosh_prompt_to_overwrite_bosh_manifest
-        File.open(BOSH_MANIFEST_FILE, "w") do |f|
-          # variables passed into the erb template via `binding`
-          director_uuid = `bosh env`.split("\n").grep(/UUID/).first.split(/\s+/)[1]
-
-          f.write ERB.new(File.read(File.join(File.dirname(__FILE__), "deployer", "artifacts", BOSH_MANIFEST_ERB_FILE)), nil, "%-").result(binding)
+      bosh_secrets do |v|
+        v["local_user"] = (v["local_user"] || {}).tap do |local_user|
+          local_user["username"] = "concourse"
+          local_user["password"] ||= if which "apg"
+                                       `apg -n1`.strip
+                                     else
+                                       prompt "Please enter a password"
+                                     end
         end
-      end
-    end
 
-    def bosh_update_stemcell name
-      doc = Nokogiri::XML(open("https://bosh.io/stemcells/#{name}"))
-      url = doc.at_xpath("//a[contains(text(), 'Light Stemcell')]/@href")
-      if url.nil?
-        error "Could not find the latest stemcell `#{name}`"
-      end
-      sh "bosh upload-stemcell #{url}"
-    end
+        v["external_dns_name"] ||= prompt("Please enter a DNS name if you have one", bbl_external_ip)
 
-    def bosh_update_ubuntu_stemcell
-      bosh_update_stemcell "bosh-google-kvm-ubuntu-trusty-go_agent"
-    end
+        v["postgres_host"] ||= prompt("External postgres host IP")
+        v["postgres_port"] ||= prompt("External postgres port", 5432)
+        v["postgres_role"] ||= prompt("External postgres role", "postgres")
+        v["postgres_password"] ||= prompt("External postgres password")
 
-    def bosh_update_windows_stemcell
-      bosh_update_stemcell "bosh-google-kvm-windows2012R2-go_agent"
-    end
+        v["postgres_client_cert"] = (v["postgres_client_cert"] || {}).tap do |cert|
+          cert["certificate"] ||= prompt_for_file_contents "Path to client-cert.pem"
+          cert["private_key"] ||= prompt_for_file_contents "Path to client-key.pem" 
+        end
+        v["postgres_ca_cert"] = (v["postgres_ca_cert"] || {}).tap do |cert|
+          cert["certificate"] ||= prompt_for_file_contents "Path to server-ca.pem"
+        end
 
-    def bosh_update_release repo
-      doc = Nokogiri::XML(open("https://bosh.io/releases/github.com/#{repo}?all=1"))
-      url = doc.at_xpath("//a[contains(text(), 'Release Tarball')]/@href")
-      if url.nil?
-        error "Could not find the latest release `#{repo}`"
-      end
-      if url.value =~ %r{\A/}
-        url = "https://bosh.io#{url}"
-      end
-      sh "bosh upload-release #{url}"
-    end
-
-    def bosh_update_garden_runc_release
-      bosh_update_release "cloudfoundry/garden-runc-release"
-    end
-
-    def bosh_update_concourse_release
-      bosh_update_release "concourse/concourse"
-    end
-
-    def bosh_update_postgres_release
-      bosh_update_release "cloudfoundry/postgres-release"
-    end
-
-    def bosh_update_from_git_repo git
-      dirname = File.basename(git)
-      Dir.mktmpdir do |dir|
-        Dir.chdir dir do
-          sh "git clone '#{git}'"
-          Dir.chdir dirname do
-            sh "bosh create-release"
-            sh "bosh upload-release"
+        if v["github_client"].nil?
+          if prompt("Would you like to configure a github oauth2 application", "n") =~ /^y/i
+            v["github_client"] = {}.tap do |gc|
+              gc["username"] = prompt "Github Client ID"
+              gc["password"] = prompt "Github Client Secret"
+            end
+            v["main_team"] ||= {}.tap do |mt|
+              mt["github_users"] ||= []
+              mt["github_orgs"] ||= []
+              mt["github_teams"] ||= []
+            end
           end
         end
       end
     end
 
-    def bosh_update_concourse_windows_release
-      # bosh_update_from_git_repo "https://github.com/pivotal-cf-experimental/concourse-windows-release"
-      bosh_update_release "pivotal-cf-experimental/concourse-windows-worker-release"
+    def bosh_update_ubuntu_stemcell
+      bosh_update_stemcell "bosh-google-kvm-ubuntu-xenial-go_agent"
     end
 
-    def bosh_update_windows_ruby_dev_tools
-      # bosh_update_from_git_repo "https://github.com/flavorjones/windows-ruby-dev-tools-release"
-      bosh_update_release "flavorjones/windows-ruby-dev-tools-release"
-    end
+    # def bosh_update_windows_stemcell
+    #   bosh_update_stemcell "bosh-google-kvm-windows2012R2-go_agent"
+    # end
 
-    def bosh_update_windows_utilities_release
-      bosh_update_release "cloudfoundry-incubator/windows-utilities-release"
-    end
+    # def bosh_update_garden_runc_release
+    #   bosh_update_release "cloudfoundry/garden-runc-release"
+    # end
+
+    # def bosh_update_concourse_release
+    #   bosh_update_release "concourse/concourse"
+    # end
+
+    # def bosh_update_postgres_release
+    #   bosh_update_release "cloudfoundry/postgres-release"
+    # end
+
+    # def bosh_update_concourse_windows_release
+    #   # bosh_update_from_git_repo "https://github.com/pivotal-cf-experimental/concourse-windows-release"
+    #   bosh_update_release "pivotal-cf-experimental/concourse-windows-worker-release"
+    # end
+
+    # def bosh_update_windows_ruby_dev_tools
+    #   # bosh_update_from_git_repo "https://github.com/flavorjones/windows-ruby-dev-tools-release"
+    #   bosh_update_release "flavorjones/windows-ruby-dev-tools-release"
+    # end
+
+    # def bosh_update_windows_utilities_release
+    #   bosh_update_release "cloudfoundry-incubator/windows-utilities-release"
+    # end
 
     def bosh_deploy
-      ensure_in_gitignore_or_gitcrypt BOSH_VARS_STORE
-      sh "bosh deploy '#{BOSH_MANIFEST_FILE}' --vars-store=#{BOSH_VARS_STORE}"
-    end
+      unless File.exists?(BOSH_SECRETS)
+        error "File #{BOSH_SECRETS} does not exist. Please run `rake bosh:init` first."
+      end
 
-    def bosh_concourse_backup
-      ensure_in_gitignore CONCOURSE_DB_BACKUP_FILE
+      ensure_in_gitcrypt BOSH_SECRETS
+      ensure_in_gitcrypt BOSH_VARS_STORE
 
-      sh "bosh ssh db 'rm -rf /tmp/#{CONCOURSE_DB_BACKUP_FILE}'"
-      sh "bosh ssh db '#{PG_PATH}/pg_dumpall -c --username=#{PG_USER} | gzip > /tmp/#{CONCOURSE_DB_BACKUP_FILE}'"
-      sh "bosh scp db:/tmp/#{CONCOURSE_DB_BACKUP_FILE} ."
-    end
+      external_dns_name = bosh_secrets['external_dns_name']
+      external_url = "https://#{external_dns_name}"
 
-    def bosh_concourse_restore
-      ensure_in_gitignore CONCOURSE_DB_BACKUP_FILE
+      # command will be run in the bosh deployment submodule's cluster directory
+      command = [].tap do |c|
+        c << "bosh deploy concourse.yml"
+        # c << "--no-redact" # DEBUG
+        c << "-l ../versions.yml"
+        c << "-l ../../#{BOSH_SECRETS}"
+        c << "--vars-store ../../#{BOSH_VARS_STORE}"
+        c << "-o operations/basic-auth.yml"
+        c << "-o operations/privileged-http.yml"
+        c << "-o operations/privileged-https.yml"
+        c << "-o operations/tls.yml"
+        c << "-o operations/tls-vars.yml"
+        c << "-o operations/web-network-extension.yml"
+        c << "-o operations/external-postgres.yml"
+        c << "-o operations/external-postgres-tls.yml"
+        c << "-o operations/external-postgres-client-cert.yml"
+        c << "-o operations/worker-ephemeral-disk.yml"
+        c << "-o ../../#{BOSH_OPERATIONS}" if File.exists?(BOSH_OPERATIONS)
+        c << "-o operations/github-auth.yml" if bosh_secrets["github_client"]
+        c << "--var network_name=default"
+        c << "--var external_host='#{external_dns_name}'"
+        c << "--var external_url='#{external_url}'"
+        c << "--var web_vm_type=default"
+        c << "--var worker_vm_type=default"
+        c << "--var worker_ephemeral_disk=50GB_ephemeral_disk"
+        c << "--var deployment_name=#{BOSH_DEPLOYMENT}"
+        c << "--var web_network_name=private"
+        c << "--var web_network_vm_extension=lb"
+      end.join(" ")
 
-      sh "bosh stop" # everything
-      sh "bosh start db" # so we can load the db
-
-      sh "bosh scp #{CONCOURSE_DB_BACKUP_FILE} db:/tmp"
-      sh "bosh ssh db 'gunzip -c /tmp/#{CONCOURSE_DB_BACKUP_FILE} | #{PG_PATH}/psql --username=#{PG_USER} postgres'"
-
-      sh "bosh start" # everything, and migrate the db if necessary
-    end
-
-    def dns_name
-      @dns_name ||= YAML.load_file(BOSH_MANIFEST_FILE)["variables"].find {|h| h["name"] == "atc_tls"}["options"]["common_name"]
+      Dir.chdir("concourse-bosh-deployment/cluster") do
+        sh command
+      end
     end
 
     def letsencrypt_create
+      external_dns_name = bosh_secrets['external_dns_name']
+      if external_dns_name == bbl_external_ip
+        error "Please set your external DNS name in #{BOSH_SECRETS}"
+      end
+
+      sh "bosh ssh web -c 'sudo chmod 777 /tmp'"
       sh "bosh ssh web -c 'sudo add-apt-repository -y ppa:certbot/certbot'"
       sh "bosh ssh web -c 'sudo apt-get update'"
       sh "bosh ssh web -c 'sudo apt-get install -y certbot'"
-      sh "bosh stop web"
       begin
-        note "logging you into the web server. run this command: sudo certbot certonly --standalone -d \"#{dns_name}\""
+        sh "bosh stop web"
+        note "logging you into the web server. run this command: sudo certbot certonly --standalone -d \"#{external_dns_name}\""
         sh "bosh ssh web"
       ensure
         sh "bosh start web"
@@ -216,22 +216,22 @@ module Concourse
     end
 
     def letsencrypt_backup
-      ensure_in_gitignore_or_gitcrypt LETSENCRYPT_BACKUP_FILE
+      ensure_in_gitcrypt LETSENCRYPT_BACKUP_FILE
       sh %Q{bosh ssh web -c 'sudo tar -zcvf /var/tmp/#{LETSENCRYPT_BACKUP_FILE} -C /etc letsencrypt'}
       sh %Q{bosh scp web:/var/tmp/#{LETSENCRYPT_BACKUP_FILE} .}
     end
 
     def letsencrypt_import
-      ensure_in_gitignore_or_gitcrypt LETSENCRYPT_BACKUP_FILE
-      sh "tar -zxf #{LETSENCRYPT_BACKUP_FILE}"
+      ensure_in_gitcrypt LETSENCRYPT_BACKUP_FILE
+      external_dns_name = bosh_secrets['external_dns_name']
+
       begin
-        note "importing certificate and private key for #{dns_name} ..."
-        private = YAML.load_file BOSH_VARS_STORE
-        private["atc_tls"]["certificate"] = File.read "letsencrypt/live/#{dns_name}/fullchain.pem"
-        private["atc_tls"]["private_key"] = File.read "letsencrypt/live/#{dns_name}/privkey.pem"
-        private["atc_tls"].delete("ca")
-        File.open BOSH_VARS_STORE, "w" do |f|
-          f.write private.to_yaml
+        sh "tar -zxf #{LETSENCRYPT_BACKUP_FILE}"
+        note "importing certificate and private key for #{external_dns_name} ..."
+        bosh_secrets do |v|
+          v["atc_tls"] ||= {}
+          v["atc_tls"]["certificate"] = File.read "letsencrypt/live/#{external_dns_name}/fullchain.pem"
+          v["atc_tls"]["private_key"] = File.read "letsencrypt/live/#{external_dns_name}/privkey.pem"
         end
       ensure
         sh "rm -rf letsencrypt"
@@ -239,9 +239,8 @@ module Concourse
     end
 
     def letsencrypt_restore
-      ensure_in_gitignore_or_gitcrypt LETSENCRYPT_BACKUP_FILE
+      ensure_in_gitcrypt LETSENCRYPT_BACKUP_FILE
       sh "bosh ssh web -c 'sudo rm -rf /etc/letsencrypt /var/tmp/#{LETSENCRYPT_BACKUP_FILE}'"
-
       sh "bosh scp #{LETSENCRYPT_BACKUP_FILE} web:/var/tmp"
       sh "bosh ssh web -c 'sudo tar -zxvf /var/tmp/#{LETSENCRYPT_BACKUP_FILE} -C /etc'"
       sh "bosh ssh web -c 'sudo chown -R root:root /etc/letsencrypt'"
@@ -279,25 +278,14 @@ module Concourse
       end
 
       namespace "bosh" do
-        desc "prepare a bosh manifest for your concourse deployment"
-        task "init", ["dns_name"] do |t, args|
-          dns_name = args["dns_name"]
-          unless dns_name
-            error "You must specify a domain name at which your concourse web server will be available, like `rake #{t.name}[dns_name]`"
-          end
-          bosh_init dns_name
+        desc "prepare the concourse bosh deployment"
+        task "init" do
+          bosh_init
         end
 
         desc "upload stemcells and releases to the director"
         task "update" => [
                "bosh:update:ubuntu_stemcell",
-               "bosh:update:windows_stemcell",
-               "bosh:update:garden_runc_release",
-               "bosh:update:postgres_release",
-               "bosh:update:concourse_release",
-               "bosh:update:concourse_windows_release",
-               "bosh:update:windows_ruby_dev_tools",
-               "bosh:update:windows_utilities_release",
              ]
 
         namespace "update" do
@@ -306,69 +294,45 @@ module Concourse
             bosh_update_ubuntu_stemcell
           end
 
-          desc "upload windows stemcell to the director"
-          task "windows_stemcell" do
-            bosh_update_windows_stemcell
-          end
+#       desc "upload windows stemcell to the director"
+#       task "windows_stemcell" do
+#         bosh_update_windows_stemcell
+#       end
 
-          desc "upload garden release to the director"
-          task "garden_runc_release" do
-            bosh_update_garden_runc_release
-          end
+#       desc "upload garden release to the director"
+#       task "garden_runc_release" do
+#         bosh_update_garden_runc_release
+#       end
 
-          desc "upload concourse release to the director"
-          task "concourse_release" do
-            bosh_update_concourse_release
-          end
+#       desc "upload concourse release to the director"
+#       task "concourse_release" do
+#         bosh_update_concourse_release
+#       end
 
-          desc "upload concourse windows release to the director"
-          task "concourse_windows_release" do
-            bosh_update_concourse_windows_release
-          end
+#       desc "upload concourse windows release to the director"
+#       task "concourse_windows_release" do
+#         bosh_update_concourse_windows_release
+#       end
 
-          desc "upload windows-ruby-dev-tools release to the director"
-          task "windows_ruby_dev_tools" do
-            bosh_update_windows_ruby_dev_tools
-          end
+#       desc "upload windows-ruby-dev-tools release to the director"
+#       task "windows_ruby_dev_tools" do
+#         bosh_update_windows_ruby_dev_tools
+#       end
 
-          desc "upload windows-utilities release to the director"
-          task "windows_utilities_release" do
-            bosh_update_windows_utilities_release
-          end
+#       desc "upload windows-utilities release to the director"
+#       task "windows_utilities_release" do
+#         bosh_update_windows_utilities_release
+#       end
 
-          desc "upload postgres release to the director"
-          task "postgres_release" do
-            bosh_update_postgres_release
-          end
+          # desc "upload postgres release to the director"
+          # task "postgres_release" do
+          #   bosh_update_postgres_release
+          # end
         end
 
         desc "deploy concourse"
         task "deploy" do
           bosh_deploy
-        end
-
-        namespace "concourse" do
-          desc "backup your concourse database to `#{CONCOURSE_DB_BACKUP_FILE}`"
-          task "backup" do
-            bosh_concourse_backup
-          end
-
-          desc "restore your concourse database from `#{CONCOURSE_DB_BACKUP_FILE}`"
-          task "restore" do
-            bosh_concourse_restore
-          end
-        end
-
-        namespace "cloud-config" do
-          desc "download the bosh cloud config to `cloud-config.yml`"
-          task "download" do
-            sh "bosh cloud-config > cloud-config.yml"
-          end
-
-          desc "upload a bosh cloud config from `cloud-config.yml`"
-          task "upload" do
-            sh "bosh update-cloud-config cloud-config.yml"
-          end
         end
       end
 
@@ -383,7 +347,7 @@ module Concourse
           letsencrypt_backup
         end
 
-        desc "import letsencrypt keys into `#{BOSH_VARS_STORE}` from backup"
+        desc "import letsencrypt keys into `#{BOSH_SECRETS}` from backup"
         task "import" do
           letsencrypt_import
         end
