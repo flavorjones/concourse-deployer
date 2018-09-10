@@ -258,24 +258,23 @@ The gem is available as open source under the terms of the [MIT License](http://
 
 ## TODO
 
-Things remaining to do:
-
-- [x] use external postgres database
-- [x] use DNS name
-- [x] use external postgres database SSL certs
-- [ ] rewrite letsencrypt certificate tasks
 - [ ] update windows stemcell
 - [ ] include windows worker in manifest
 - [ ] deploy windows ruby tools release to the windows vms
+- [ ] +      x_frame_options: "SAMEORIGIN"
+- [ ] +      container_placement_strategy: random
+- [ ] enable encryption https://concourse.ci/encryption.html
+
 
 Things to follow up on:
 
 - [ ] bbl feature for suspending/unsuspending the director VM?
-- [ ] stack driver add-on
-- [ ] atc encryption key https://concourse.ci/encryption.html
+- [ ] stack driver add-on?
+- [ ] metrics? https://concourse-ci.org/metrics.html
+- [ ] credhub for credential management? https://concourse-ci.org/creds.html
+
 
 Things I'm not immediately planning to do but that might be nice:
 
 - [ ] ops file to make the cloud-config come in under default GCP quota
 - [ ] ops files for a few variations on size/cost tradeoffs
-- [ ] deploy credhub and integrate it
