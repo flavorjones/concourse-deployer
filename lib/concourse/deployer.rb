@@ -99,6 +99,20 @@ module Concourse
         v["postgres_ca_cert"] = (v["postgres_ca_cert"] || {}).tap do |cert|
           cert["certificate"] ||= prompt_for_file_contents "Path to server-ca.pem"
         end
+
+        if v["github_client"].nil?
+          if prompt("Would you like to configure a github oauth2 application", "n") =~ /^y/i
+            v["github_client"] = {}.tap do |gc|
+              gc["username"] = prompt "Github Client ID"
+              gc["password"] = prompt "Github Client Secret"
+            end
+            v["main_team"] ||= {}.tap do |mt|
+              mt["github_users"] ||= []
+              mt["github_orgs"] ||= []
+              mt["github_teams"] ||= []
+            end
+          end
+        end
       end
     end
 
@@ -164,6 +178,7 @@ module Concourse
         c << "-o operations/external-postgres-tls.yml"
         c << "-o operations/external-postgres-client-cert.yml"
         c << "-o ../../#{BOSH_OPERATIONS}" if File.exists?(BOSH_OPERATIONS)
+        c << "-o operations/github-auth.yml" if bosh_secrets["github_client"]
         c << "--var network_name=default"
         c << "--var external_host='#{external_dns_name}'"
         c << "--var external_url='#{external_url}'"
