@@ -347,7 +347,7 @@ module Concourse
           letsencrypt_backup
         end
 
-        desc "import letsencrypt keys into `#{BOSH_VARS_STORE}` from backup"
+        desc "import letsencrypt keys into `#{BOSH_SECRETS}` from backup"
         task "import" do
           letsencrypt_import
         end
