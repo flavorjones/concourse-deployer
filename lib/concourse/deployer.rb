@@ -178,6 +178,8 @@ module Concourse
         c << "-o operations/external-postgres-tls.yml"
         c << "-o operations/external-postgres-client-cert.yml"
         c << "-o operations/worker-ephemeral-disk.yml"
+        c << "-o operations/x-frame-options-sameorigin.yml"
+        c << "-o operations/container-placement-strategy-random.yml"
         c << "-o ../../#{BOSH_OPERATIONS}" if File.exists?(BOSH_OPERATIONS)
         c << "-o operations/github-auth.yml" if bosh_secrets["github_client"]
         c << "--var network_name=default"
