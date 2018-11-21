@@ -180,6 +180,7 @@ module Concourse
         c << "-o operations/worker-ephemeral-disk.yml"
         c << "-o operations/x-frame-options-sameorigin.yml"
         c << "-o operations/container-placement-strategy-random.yml"
+        c << "-o operations/scale.yml"
         c << "-o ../../#{BOSH_OPERATIONS}" if File.exists?(BOSH_OPERATIONS)
         c << "-o operations/github-auth.yml" if bosh_secrets["github_client"]
         c << "--var network_name=default"
@@ -191,6 +192,8 @@ module Concourse
         c << "--var deployment_name=#{BOSH_DEPLOYMENT}"
         c << "--var web_network_name=private"
         c << "--var web_network_vm_extension=lb"
+        c << "--var web_instances=1"
+        c << "--var worker_instances=2"
       end.join(" ")
 
       Dir.chdir("concourse-bosh-deployment/cluster") do
