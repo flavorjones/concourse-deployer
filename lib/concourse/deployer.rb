@@ -118,6 +118,10 @@ module Concourse
       end
     end
 
+    def bosh_update_concourse_deployment
+      update_git_submodule "https://github.com/concourse/concourse-bosh-deployment", "master"
+    end
+
     def bosh_update_ubuntu_stemcell
       bosh_update_stemcell "bosh-google-kvm-ubuntu-xenial-go_agent"
     end
@@ -279,12 +283,18 @@ module Concourse
           bosh_init
         end
 
-        desc "upload stemcells and releases to the director"
+        desc "macro task for all `update` subtasks"
         task "update" => [
+               "bosh:update:concourse_deployment",
                "bosh:update:ubuntu_stemcell",
              ]
 
         namespace "update" do
+          desc "update the git submodule for concourse-bosh-deployment"
+          task "concourse_deployment" do
+            bosh_update_concourse_deployment
+          end
+
           desc "upload ubuntu stemcell to the director"
           task "ubuntu_stemcell" do
             bosh_update_ubuntu_stemcell

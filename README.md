@@ -241,6 +241,20 @@ $ rake bbl:gcp:up
 Make sure to commit into source control all the changes in your project directory (`bbl-state.json`, `vars/`, `bosh-deployment/`, etc.).
 
 
+## Upgrading `concourse-bosh-deployment`
+
+If a new version of concourse comes out, and you'd like to upgrade, first read the [release notes for Concourse](https://concourse-ci.org/download.html) to check for any relevant breaking changes.
+
+Then:
+
+``` sh
+$ rake bosh:update:concourse_deployment
+$ rake bosh:deploy
+```
+
+Make sure you commit to source control the updated git submodule.
+
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/flavorjones/concourse-deployer. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
@@ -263,7 +277,7 @@ The gem is available as open source under the terms of the [MIT License](http://
 
 Things to follow up on:
 
-- [ ] upgrading! ZOMG
+- [x] upgrading! ZOMG
 - [ ] consider swapping secrets-wizarding and rake task for deploy for a shell script that's user-modifiable
 - [ ] bbl feature for suspending/unsuspending the director VM?
 - [ ] stack driver add-on?

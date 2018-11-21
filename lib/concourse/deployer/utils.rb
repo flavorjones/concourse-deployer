@@ -109,6 +109,16 @@ module Concourse
         end
       end
 
+      def update_git_submodule repo_url, commitish
+        ensure_git_submodule repo_url, commitish
+
+        repo_name = File.basename repo_url
+        Dir.chdir(repo_name) do
+          sh "git remote update"
+          sh "git pull --rebase"
+        end
+      end
+
       def which command
         found = `which #{command}`
         return $?.success? ? found : nil
