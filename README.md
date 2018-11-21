@@ -243,8 +243,8 @@ The gem is available as open source under the terms of the [MIT License](http://
 - [ ] update windows stemcell
 - [ ] include windows worker in manifest
 - [ ] deploy windows ruby tools release to the windows vms
-- [ ] +      x_frame_options: "SAMEORIGIN"
-- [ ] +      container_placement_strategy: random
+- [x] +      x_frame_options: "SAMEORIGIN"
+- [x] +      container_placement_strategy: random
 - [ ] enable encryption https://concourse.ci/encryption.html
 
 

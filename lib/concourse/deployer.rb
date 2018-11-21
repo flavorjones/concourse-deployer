@@ -68,6 +68,7 @@ module Concourse
       note "running `bbl up` on GCP ... go get a coffee."
       note "(If you get an error about 'Access Not Configured', follow the URL in the error message and enable API access for your project!)"
       note ""
+      sh "bbl plan --lb-type concourse"
       sh "bbl up --lb-type concourse"
     end
 
