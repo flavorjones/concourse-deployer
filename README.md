@@ -25,7 +25,7 @@ rake bosh:deploy
 You can create and deploy a LetsEncrypt SSL cert:
 
 ``` sh
-rake letsencrypt:create etsencrypt:backup letsencrypt:import
+rake letsencrypt:create letsencrypt:backup letsencrypt:import
 rake bosh:deploy
 ```
 
