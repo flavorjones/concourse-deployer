@@ -4,6 +4,7 @@ require "erb"
 require "open-uri"
 require "nokogiri"
 require "yaml"
+require "rake"
 
 module Concourse
   class Deployer
