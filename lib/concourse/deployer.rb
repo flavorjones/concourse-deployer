@@ -252,6 +252,7 @@ module Concourse
     end
 
     def letsencrypt_renew
+      sh "bosh ssh web -c 'sudo chmod 1777 /tmp'" # see https://github.com/cloudfoundry/bosh-linux-stemcell-builder/issues/39
       sh "bosh ssh web -c 'sudo add-apt-repository -y ppa:certbot/certbot'"
       sh "bosh ssh web -c 'sudo apt-get update'"
       sh "bosh ssh web -c 'sudo apt-get install -y certbot'"
