@@ -125,18 +125,6 @@ module Concourse
     #   bosh_update_stemcell "bosh-google-kvm-windows2012R2-go_agent"
     # end
 
-    def bosh_update_garden_runc_release
-      bosh_update_release "cloudfoundry/garden-runc-release"
-    end
-
-    def bosh_update_concourse_release
-      bosh_update_release "concourse/concourse"
-    end
-
-    # def bosh_update_postgres_release
-    #   bosh_update_release "cloudfoundry/postgres-release"
-    # end
-
     # def bosh_update_concourse_windows_release
     #   # bosh_update_from_git_repo "https://github.com/pivotal-cf-experimental/concourse-windows-release"
     #   bosh_update_release "pivotal-cf-experimental/concourse-windows-worker-release"
@@ -293,8 +281,6 @@ module Concourse
         desc "upload stemcells and releases to the director"
         task "update" => [
                "bosh:update:ubuntu_stemcell",
-               "bosh:update:garden_runc_release",
-               "bosh:update:concourse_release"
              ]
 
         namespace "update" do
@@ -307,16 +293,6 @@ module Concourse
 #       task "windows_stemcell" do
 #         bosh_update_windows_stemcell
 #       end
-
-      desc "upload garden release to the director"
-      task "garden_runc_release" do
-        bosh_update_garden_runc_release
-      end
-
-      desc "upload concourse release to the director"
-      task "concourse_release" do
-        bosh_update_concourse_release
-      end
 
 #       desc "upload concourse windows release to the director"
 #       task "concourse_windows_release" do
@@ -332,11 +308,6 @@ module Concourse
 #       task "windows_utilities_release" do
 #         bosh_update_windows_utilities_release
 #       end
-
-          # desc "upload postgres release to the director"
-          # task "postgres_release" do
-          #   bosh_update_postgres_release
-          # end
         end
 
         desc "deploy concourse"
