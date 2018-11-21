@@ -228,6 +228,19 @@ __NOTE:__ These tasks will create and use `letsencrypt.tar.gz` which contains se
 If you want to perform any custom operations on the manifest, put them in a file named `operations.yml` and they'll be pulled in as the __final__ ops file during deployment.
 
 
+## Upgrading `bbl`
+
+When a new version of bosh-bootloader comes out, just [download it](https://github.com/cloudfoundry/bosh-bootloader/releases) and make sure it's in your path as `bbl` (check by running `bbl -v`) and then:
+
+``` sh
+$ rake bbl:gcp:up
+```
+
+... which will generate a new plan and then update the jumpbox, director, and cloud config. (See https://github.com/cloudfoundry/bosh-bootloader/blob/master/docs/upgrade.md for details.)
+
+Make sure to commit into source control all the changes in your project directory (`bbl-state.json`, `vars/`, `bosh-deployment/`, etc.).
+
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/flavorjones/concourse-deployer. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
