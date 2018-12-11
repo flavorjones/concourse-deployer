@@ -273,6 +273,8 @@ The gem is available as open source under the terms of the [MIT License](http://
 - [x] +      x_frame_options: "SAMEORIGIN"
 - [x] +      container_placement_strategy: random
 - [ ] enable encryption https://concourse.ci/encryption.html
+- [ ] allow scaling up/down by locally setting number of VMs (currently hardcoded in gem)
+- [ ] start using https://github.com/dpb587/caddy-bosh-release instead of the letsencrypt rake tasks
 
 
 Things to follow up on:
