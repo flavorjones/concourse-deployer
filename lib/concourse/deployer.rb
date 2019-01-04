@@ -22,6 +22,8 @@ module Concourse
     BOSH_VARS_STORE          = "cluster-creds.yml"
     BOSH_OPERATIONS          = "operations.yml"
 
+    CONCOURSE_SCALE_VARS     = "scale-vars.yml"
+
     LETSENCRYPT_BACKUP_FILE  = "letsencrypt.tar.gz"
 
     def bbl_init
@@ -152,6 +154,10 @@ module Concourse
       ensure_in_gitcrypt BOSH_SECRETS
       ensure_in_gitcrypt BOSH_VARS_STORE
 
+      ensure_file CONCOURSE_SCALE_VARS do |f|
+        f.write({"web_instances" => 1, "worker_instances" => 2}.to_yaml)
+      end
+
       external_dns_name = bosh_secrets['external_dns_name']
       external_url = "https://#{external_dns_name}"
 
@@ -186,8 +192,7 @@ module Concourse
         c << "--var deployment_name=#{BOSH_DEPLOYMENT}"
         c << "--var web_network_name=private"
         c << "--var web_network_vm_extension=lb"
-        c << "--var web_instances=1"
-        c << "--var worker_instances=2"
+        c << "-l ../../#{CONCOURSE_SCALE_VARS}"
       end.join(" ")
 
       Dir.chdir("concourse-bosh-deployment/cluster") do

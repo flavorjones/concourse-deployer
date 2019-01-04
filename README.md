@@ -210,6 +210,19 @@ __NOTE:__ This task is idempotent! Yay Bosh.
 
 ## Other Fun Things This Gem Does
 
+### Scale your Concourse deployment
+
+Your first deployment will spin up one (1) web VM, and two (2) Linux worker VMs. But you can scale these numbers up as needed by editing the file `scale-vars.yml`, whose default contents looks like:
+
+```yaml
+---
+web_instances: 1
+worker_instances: 2
+```
+
+Edit this file as appropriate for your needs, and re-run `rake bosh:deploy`.
+
+
 ### Manage your letsencrypt SSL cert
 
 ``` sh

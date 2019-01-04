@@ -30,6 +30,13 @@ module Concourse
         exit 1 unless continue
       end
 
+      def ensure_file filename, &block
+        return if File.exist?(filename)
+        File.open(filename, "w") do |f|
+          block.call f
+        end
+      end
+
       def ensure_in_gitignore file_glob
         if File.exist?(GITIGNORE_FILE)
           if File.read(GITIGNORE_FILE).split("\n").include?(file_glob)
@@ -202,7 +209,6 @@ module Concourse
           end
         end
       end
-
     end
   end
 end
