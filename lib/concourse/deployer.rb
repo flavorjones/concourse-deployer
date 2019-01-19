@@ -5,6 +5,7 @@ require "open-uri"
 require "nokogiri"
 require "yaml"
 require "rake"
+require "tempfile"
 
 module Concourse
   class Deployer
@@ -263,6 +264,29 @@ module Concourse
       end
     end
 
+    def db_connect
+      tempfile_cert = Tempfile.new
+      tempfile_key = Tempfile.new
+      tempfile_ca = Tempfile.new
+      begin
+        tempfile_cert.write bosh_secrets['postgres_client_cert']['certificate']
+        tempfile_key.write bosh_secrets['postgres_client_cert']['private_key']
+        tempfile_ca.write bosh_secrets['postgres_ca_cert']['certificate']
+
+        tempfile_cert.close
+        tempfile_key.close
+        tempfile_ca.close
+
+        command = %Q{psql "sslmode=verify-ca sslrootcert=#{tempfile_ca.path} sslcert=#{tempfile_cert.path} sslkey=#{tempfile_key.path} hostaddr=#{bosh_secrets['postgres_host']} user=#{bosh_secrets['postgres_role']} dbname=atc"}
+
+        sh command
+      ensure
+        tempfile_cert.unlink
+        tempfile_key.unlink
+        tempfile_ca.unlink
+      end
+    end
+
     def create_tasks!
       namespace "bbl" do
         namespace "gcp" do
@@ -356,6 +380,13 @@ module Concourse
         desc "renew the certificate"
         task "renew" do
           letsencrypt_renew
+        end
+      end
+
+      namespace "db" do
+        desc "connect to the postgres database"
+        task "connect" do
+          db_connect
         end
       end
     end

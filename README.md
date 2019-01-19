@@ -65,17 +65,19 @@ Concourse::Deployer.new.create_tasks!
 Available tasks:
 
 ``` sh
-rake bbl:gcp:init[gcp_project_id]  # initialize bosh-bootloader for GCP
-rake bbl:gcp:up                    # terraform your environment and deploy the bosh director
-rake bosh:deploy                   # deploy concourse
-rake bosh:init                     # prepare the concourse bosh deployment
-rake bosh:update                   # upload stemcells and releases to the director
-rake bosh:update:ubuntu_stemcell   # upload ubuntu stemcell to the director
-rake letsencrypt:backup            # backup web:/etc/letsencrypt to local disk
-rake letsencrypt:create            # create a cert
-rake letsencrypt:import            # import letsencrypt keys into `secrets.yml` from backup
-rake letsencrypt:renew             # renew the certificate
-rake letsencrypt:restore           # restore web:/etc/letsencrypt from backup
+rake bbl:gcp:init[gcp_project_id]      # initialize bosh-bootloader for GCP
+rake bbl:gcp:up                        # terraform your environment and deploy the bosh director
+rake bosh:deploy                       # deploy concourse
+rake bosh:init                         # prepare the concourse bosh deployment
+rake bosh:update                       # macro task for all `update` subtasks
+rake bosh:update:concourse_deployment  # update the git submodule for concourse-bosh-deployment
+rake bosh:update:ubuntu_stemcell       # upload ubuntu stemcell to the director
+rake db:connect                        # connect to the postgres database
+rake letsencrypt:backup                # backup web:/etc/letsencrypt to local disk
+rake letsencrypt:create                # create a cert
+rake letsencrypt:import                # import letsencrypt keys into `secrets.yml` from backup
+rake letsencrypt:renew                 # renew the certificate
+rake letsencrypt:restore               # restore web:/etc/letsencrypt from backup
 ```
 
 See full instructions below.
@@ -239,6 +241,23 @@ __NOTE:__ These tasks will create and use `letsencrypt.tar.gz` which contains se
 ### Custom bosh ops files
 
 If you want to perform any custom operations on the manifest, put them in a file named `operations.yml` and they'll be pulled in as the __final__ ops file during deployment.
+
+
+### Connect to the database
+
+If you ever need to connect to the database, here's how:
+
+``` sh
+rake db:connect
+```
+
+This will:
+
+* securely write your SSL cert, key, and CA cert to disk
+* run `psql` and connect to the database
+* clean up the cert and key files
+
+Note that you will need to type in your database password; this is located in `secrets.yml`.
 
 
 ## Upgrading `bbl`
