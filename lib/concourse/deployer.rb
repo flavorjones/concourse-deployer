@@ -157,7 +157,7 @@ module Concourse
     #   bosh_update_release "cloudfoundry-incubator/windows-utilities-release"
     # end
 
-    def bosh_deploy
+    def bosh_deploy command: "deploy"
       unless File.exists?(BOSH_SECRETS)
         error "File #{BOSH_SECRETS} does not exist. Please run `rake bosh:init` first."
       end
@@ -174,7 +174,7 @@ module Concourse
 
       # command will be run in the bosh deployment submodule's cluster directory
       command = [].tap do |c|
-        c << "bosh deploy concourse.yml"
+        c << "bosh #{command} concourse.yml"
         # c << "--no-redact" # DEBUG
         c << "-l ../versions.yml"
         c << "-l ../../#{BOSH_SECRETS}"
@@ -360,6 +360,11 @@ module Concourse
         desc "deploy concourse"
         task "deploy" do
           bosh_deploy
+        end
+
+        desc "view interpolated manifest"
+        task "interpolate" do
+          bosh_deploy command: "interpolate"
         end
       end
 
