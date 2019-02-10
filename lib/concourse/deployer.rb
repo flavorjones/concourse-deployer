@@ -172,6 +172,8 @@ module Concourse
       external_dns_name = bosh_secrets['external_dns_name']
       external_url = "https://#{external_dns_name}"
 
+      ops_files = Dir[File.join(File.dirname(__FILE__), "deployer", "operations", "*.yml")]
+
       # command will be run in the bosh deployment submodule's cluster directory
       command = [].tap do |c|
         c << "bosh #{command} concourse.yml"
@@ -201,6 +203,9 @@ module Concourse
         c << "--var web_network_name=private"
         c << "--var web_network_vm_extension=lb"
         c << "-l ../../#{CONCOURSE_DEPLOYMENT_VARS}"
+        ops_files.each do |ops_file|
+          c << "-o #{ops_file}"
+        end
       end.join(" ")
 
       Dir.chdir("concourse-bosh-deployment/cluster") do
