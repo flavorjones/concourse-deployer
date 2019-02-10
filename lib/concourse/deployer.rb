@@ -12,20 +12,20 @@ module Concourse
     include Rake::DSL
     include Concourse::Deployer::Utils
 
-    GCP_SERVICE_ACCOUNT_FILE = "service-account.key.json"
-    ENVRC_FILE               = ".envrc"
+    GCP_SERVICE_ACCOUNT_FILE  = "service-account.key.json"
+    ENVRC_FILE                = ".envrc"
 
-    BBL_STATE_FILE           = "bbl-state.json"
-    BBL_VARS_DIR             = "vars"
+    BBL_STATE_FILE            = "bbl-state.json"
+    BBL_VARS_DIR              = "vars"
 
-    BOSH_DEPLOYMENT          = "concourse"
-    BOSH_SECRETS             = "secrets.yml"
-    BOSH_VARS_STORE          = "cluster-creds.yml"
-    BOSH_OPERATIONS          = "operations.yml"
+    BOSH_DEPLOYMENT           = "concourse"
+    BOSH_SECRETS              = "secrets.yml"
+    BOSH_VARS_STORE           = "cluster-creds.yml"
+    BOSH_OPERATIONS           = "operations.yml"
 
-    CONCOURSE_SCALE_VARS     = "scale-vars.yml"
+    CONCOURSE_DEPLOYMENT_VARS = "deployment-vars.yml"
 
-    LETSENCRYPT_BACKUP_FILE  = "letsencrypt.tar.gz"
+    LETSENCRYPT_BACKUP_FILE   = "letsencrypt.tar.gz"
 
     def bbl_init
       unless_which "bbl", "https://github.com/cloudfoundry/bosh-bootloader/releases"
@@ -119,6 +119,16 @@ module Concourse
           end
         end
       end
+
+      ensure_file CONCOURSE_DEPLOYMENT_VARS do |f|
+        f.write({
+                  "web_instances" => 1,
+                  "worker_instances" => 2, # 1
+                  "web_vm_type" => "default",
+                  "worker_vm_type" => "default", # "n1-standard-2"
+                  "worker_ephemeral_disk" => "50GB_ephemeral_disk",
+                }.to_yaml)
+      end
     end
 
     def bosh_update_concourse_deployment
@@ -152,12 +162,12 @@ module Concourse
         error "File #{BOSH_SECRETS} does not exist. Please run `rake bosh:init` first."
       end
 
+      unless File.exists?(CONCOURSE_DEPLOYMENT_VARS)
+        error "File #{CONCOURSE_DEPLOYMENT_VARS} does not exist. Please run `rake bosh:init` first."
+      end
+
       ensure_in_gitcrypt BOSH_SECRETS
       ensure_in_gitcrypt BOSH_VARS_STORE
-
-      ensure_file CONCOURSE_SCALE_VARS do |f|
-        f.write({"web_instances" => 1, "worker_instances" => 2}.to_yaml)
-      end
 
       external_dns_name = bosh_secrets['external_dns_name']
       external_url = "https://#{external_dns_name}"
@@ -187,13 +197,10 @@ module Concourse
         c << "--var network_name=default"
         c << "--var external_host='#{external_dns_name}'"
         c << "--var external_url='#{external_url}'"
-        c << "--var web_vm_type=default"
-        c << "--var worker_vm_type=default"
-        c << "--var worker_ephemeral_disk=50GB_ephemeral_disk"
         c << "--var deployment_name=#{BOSH_DEPLOYMENT}"
         c << "--var web_network_name=private"
         c << "--var web_network_vm_extension=lb"
-        c << "-l ../../#{CONCOURSE_SCALE_VARS}"
+        c << "-l ../../#{CONCOURSE_DEPLOYMENT_VARS}"
       end.join(" ")
 
       Dir.chdir("concourse-bosh-deployment/cluster") do

@@ -214,12 +214,15 @@ __NOTE:__ This task is idempotent! Yay Bosh.
 
 ### Scale your Concourse deployment
 
-Your first deployment will spin up one (1) web VM, and two (2) Linux worker VMs. But you can scale these numbers up as needed by editing the file `scale-vars.yml`, whose default contents looks like:
+Your first deployment will spin up one (1) web VM, and two (2) Linux worker VMs. But you can scale these numbers up as needed by editing the file `deployment-vars.yml`, whose default contents include the values:
 
 ```yaml
 ---
 web_instances: 1
 worker_instances: 2
+web_vm_type: default
+worker_vm_type: default
+worker_ephemeral_disk: 50GB_ephemeral_disk
 ```
 
 Edit this file as appropriate for your needs, and re-run `rake bosh:deploy`.
@@ -305,7 +308,7 @@ The gem is available as open source under the terms of the [MIT License](http://
 - [x] +      x_frame_options: "SAMEORIGIN"
 - [x] +      container_placement_strategy: random
 - [ ] enable encryption https://concourse.ci/encryption.html
-- [ ] allow scaling up/down by locally setting number of VMs (currently hardcoded in gem)
+- [x] allow scaling up/down by locally setting number of VMs (currently hardcoded in gem)
 - [ ] start using https://github.com/dpb587/caddy-bosh-release instead of the letsencrypt rake tasks
 
 
