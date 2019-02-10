@@ -4,7 +4,7 @@ Provides easy installation and maintenance of an opinionated [Concourse](https:/
 
 - external Postgres database
 - Github auth integration
-- LetsEncrypt integration for SSL cert management
+- LetsEncrypt integration, via [caddy](https://caddyserver.com/) and [caddy-bosh-release](https://github.com/dpb587/caddy-bosh-release)
 - Windows™ workers
 
 Today this only supports deployment to GCP.
@@ -22,12 +22,8 @@ rake bosh:update
 rake bosh:deploy
 ```
 
-You can create and deploy a LetsEncrypt SSL cert:
+During `bbl:gcp:init` and `bosh:init` you'll be prompted interactively for any necessary information. Note that you need a DNS domain name in order for Caddy to create and manage your SSL certs.
 
-``` sh
-rake letsencrypt:create letsencrypt:backup letsencrypt:import
-rake bosh:deploy
-```
 
 ## Requirements
 
@@ -69,15 +65,11 @@ rake bbl:gcp:init[gcp_project_id]      # initialize bosh-bootloader for GCP
 rake bbl:gcp:up                        # terraform your environment and deploy the bosh director
 rake bosh:deploy                       # deploy concourse
 rake bosh:init                         # prepare the concourse bosh deployment
+rake bosh:interpolate                  # view interpolated manifest
 rake bosh:update                       # macro task for all `update` subtasks
 rake bosh:update:concourse_deployment  # update the git submodule for concourse-bosh-deployment
 rake bosh:update:ubuntu_stemcell       # upload ubuntu stemcell to the director
 rake db:connect                        # connect to the postgres database
-rake letsencrypt:backup                # backup web:/etc/letsencrypt to local disk
-rake letsencrypt:create                # create a cert
-rake letsencrypt:import                # import letsencrypt keys into `secrets.yml` from backup
-rake letsencrypt:renew                 # renew the certificate
-rake letsencrypt:restore               # restore web:/etc/letsencrypt from backup
 ```
 
 See full instructions below.
@@ -94,7 +86,6 @@ Files which contain sensitive data:
 * `secrets.yml`
 * `cluster-creds.yml`
 * the `vars` subdirectory
-* `letsencrypt.tar.gz` (if you're using the letsencrypt SSL cert functionality)
 
 You will see these files listed in `.gitattributes` invoking git-crypt for them.
 
@@ -228,19 +219,6 @@ worker_ephemeral_disk: 50GB_ephemeral_disk
 Edit this file as appropriate for your needs, and re-run `rake bosh:deploy`.
 
 
-### Manage your letsencrypt SSL cert
-
-``` sh
-$ rake letsencrypt:backup
-$ rake letsencrypt:create
-$ rake letsencrypt:restore
-$ rake letsencrypt:import
-$ rake letsencrypt:renew
-```
-
-__NOTE:__ These tasks will create and use `letsencrypt.tar.gz` which contains sensitive data.
-
-
 ### Custom bosh ops files
 
 If you want to perform any custom operations on the manifest, put them in a file named `operations.yml` and they'll be pulled in as the __final__ ops file during deployment.
@@ -309,7 +287,7 @@ The gem is available as open source under the terms of the [MIT License](http://
 - [x] +      container_placement_strategy: random
 - [ ] enable encryption https://concourse.ci/encryption.html
 - [x] allow scaling up/down by locally setting number of VMs (currently hardcoded in gem)
-- [ ] start using https://github.com/dpb587/caddy-bosh-release instead of the letsencrypt rake tasks
+- [x] start using https://github.com/dpb587/caddy-bosh-release instead of the letsencrypt rake tasks
 
 
 Things to follow up on:

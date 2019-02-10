@@ -25,8 +25,6 @@ module Concourse
 
     CONCOURSE_DEPLOYMENT_VARS = "deployment-vars.yml"
 
-    LETSENCRYPT_BACKUP_FILE   = "letsencrypt.tar.gz"
-
     def bbl_init
       unless_which "bbl", "https://github.com/cloudfoundry/bosh-bootloader/releases"
       unless_which "bosh", "https://github.com/cloudfoundry/bosh-cli/releases"
@@ -182,10 +180,6 @@ module Concourse
         c << "-l ../../#{BOSH_SECRETS}"
         c << "--vars-store ../../#{BOSH_VARS_STORE}"
         c << "-o operations/basic-auth.yml"
-        c << "-o operations/privileged-http.yml"
-        c << "-o operations/privileged-https.yml"
-        c << "-o operations/tls.yml"
-        c << "-o operations/tls-vars.yml"
         c << "-o operations/web-network-extension.yml"
         c << "-o operations/external-postgres.yml"
         c << "-o operations/external-postgres-tls.yml"
@@ -210,69 +204,6 @@ module Concourse
 
       Dir.chdir("concourse-bosh-deployment/cluster") do
         sh command
-      end
-    end
-
-    def letsencrypt_create
-      external_dns_name = bosh_secrets['external_dns_name']
-      if external_dns_name == bbl_external_ip
-        error "Please set your external DNS name in #{BOSH_SECRETS}"
-      end
-
-      sh "bosh ssh web -c 'sudo chmod 777 /tmp'"
-      sh "bosh ssh web -c 'sudo add-apt-repository -y ppa:certbot/certbot'"
-      sh "bosh ssh web -c 'sudo apt-get update'"
-      sh "bosh ssh web -c 'sudo apt-get install -y certbot'"
-      begin
-        sh "bosh stop web"
-        note "logging you into the web server. run this command: sudo certbot certonly --standalone -d \"#{external_dns_name}\""
-        sh "bosh ssh web"
-      ensure
-        sh "bosh start web"
-      end
-    end
-
-    def letsencrypt_backup
-      ensure_in_gitcrypt LETSENCRYPT_BACKUP_FILE
-      sh %Q{bosh ssh web -c 'sudo tar -zcvf /var/tmp/#{LETSENCRYPT_BACKUP_FILE} -C /etc letsencrypt'}
-      sh %Q{bosh scp web:/var/tmp/#{LETSENCRYPT_BACKUP_FILE} .}
-    end
-
-    def letsencrypt_import
-      ensure_in_gitcrypt LETSENCRYPT_BACKUP_FILE
-      external_dns_name = bosh_secrets['external_dns_name']
-
-      begin
-        sh "tar -zxf #{LETSENCRYPT_BACKUP_FILE}"
-        note "importing certificate and private key for #{external_dns_name} ..."
-        bosh_secrets do |v|
-          v["atc_tls"] ||= {}
-          v["atc_tls"]["certificate"] = File.read "letsencrypt/live/#{external_dns_name}/fullchain.pem"
-          v["atc_tls"]["private_key"] = File.read "letsencrypt/live/#{external_dns_name}/privkey.pem"
-        end
-      ensure
-        sh "rm -rf letsencrypt"
-      end
-    end
-
-    def letsencrypt_restore
-      ensure_in_gitcrypt LETSENCRYPT_BACKUP_FILE
-      sh "bosh ssh web -c 'sudo rm -rf /etc/letsencrypt /var/tmp/#{LETSENCRYPT_BACKUP_FILE}'"
-      sh "bosh scp #{LETSENCRYPT_BACKUP_FILE} web:/var/tmp"
-      sh "bosh ssh web -c 'sudo tar -zxvf /var/tmp/#{LETSENCRYPT_BACKUP_FILE} -C /etc'"
-      sh "bosh ssh web -c 'sudo chown -R root:root /etc/letsencrypt'"
-    end
-
-    def letsencrypt_renew
-      sh "bosh ssh web -c 'sudo chmod 1777 /tmp'" # see https://github.com/cloudfoundry/bosh-linux-stemcell-builder/issues/39
-      sh "bosh ssh web -c 'sudo add-apt-repository -y ppa:certbot/certbot'"
-      sh "bosh ssh web -c 'sudo apt-get update'"
-      sh "bosh ssh web -c 'sudo apt-get install -y certbot'"
-      begin
-        sh "bosh stop web"
-        sh "bosh ssh web -c 'sudo certbot renew'"
-      ensure
-        sh "bosh start web"
       end
     end
 
@@ -370,33 +301,6 @@ module Concourse
         desc "view interpolated manifest"
         task "interpolate" do
           bosh_deploy command: "interpolate"
-        end
-      end
-
-      namespace "letsencrypt" do
-        desc "create a cert"
-        task "create" do
-          letsencrypt_create
-        end
-
-        desc "backup web:/etc/letsencrypt to local disk"
-        task "backup" do
-          letsencrypt_backup
-        end
-
-        desc "import letsencrypt keys into `#{BOSH_SECRETS}` from backup"
-        task "import" do
-          letsencrypt_import
-        end
-
-        desc "restore web:/etc/letsencrypt from backup"
-        task "restore" do
-          letsencrypt_restore
-        end
-
-        desc "renew the certificate"
-        task "renew" do
-          letsencrypt_renew
         end
       end
 

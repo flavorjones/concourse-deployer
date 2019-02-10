@@ -1,0 +1,28 @@
+- path: /releases/name=caddy?
+  type: replace
+  value:
+    name: "caddy"
+    version: "0.4.1"
+    url: "https://bosh.io/d/github.com/dpb587/caddy-bosh-release?v=0.4.1"
+    sha1: "7d9ca0c3e0bed5a68a5a202f864084108a41b47e"
+
+# see https://github.com/dpb587/caddy-bosh-release/blob/master/manifests/caddy.yml
+- path: /instance_groups/name=web/persistent_disk?
+  type: replace
+  value: 1024
+
+# see https://github.com/dpb587/caddy-bosh-release/blob/master/manifests/examples/concourse-ops.yml
+- path: /instance_groups/name=web/jobs/name=caddy?
+  type: replace
+  value:
+    name: "caddy"
+    release: "caddy"
+    properties:
+      caddyfile: |
+        ((external_host)) {
+          gzip
+          proxy / localhost:8080 {
+            transparent
+            websocket
+          }
+        }
