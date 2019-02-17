@@ -129,9 +129,9 @@ module Concourse
       end
     end
 
-    def bosh_update_concourse_deployment(branch_or_tag)
-      branch_or_tag ||= "master"
-      ensure_git_submodule "https://github.com/concourse/concourse-bosh-deployment", branch_or_tag
+    def bosh_update_concourse_deployment(commitish)
+      commitish ||= "master"
+      ensure_git_submodule "https://github.com/concourse/concourse-bosh-deployment", commitish
     end
 
     def bosh_update_ubuntu_stemcell
@@ -263,9 +263,9 @@ module Concourse
              ]
 
         namespace "update" do
-          desc "update the git submodule for concourse-bosh-deployment"
-          task "concourse_deployment", ["branch_or_tag"] do |t, args|
-            bosh_update_concourse_deployment args["branch_or_tag"]
+          desc "update the git submodule for concourse-bosh-deployment (default: master)"
+          task "concourse_deployment", ["commitish"] do |t, args|
+            bosh_update_concourse_deployment args["commitish"]
           end
 
           desc "upload ubuntu stemcell to the director"

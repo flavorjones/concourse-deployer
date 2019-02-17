@@ -61,15 +61,15 @@ Concourse::Deployer.new.create_tasks!
 Available tasks:
 
 ``` sh
-rake bbl:gcp:init[gcp_project_id]      # initialize bosh-bootloader for GCP
-rake bbl:gcp:up                        # terraform your environment and deploy the bosh director
-rake bosh:deploy                       # deploy concourse
-rake bosh:init                         # prepare the concourse bosh deployment
-rake bosh:interpolate                  # view interpolated manifest
-rake bosh:update                       # macro task for all `update` subtasks
-rake bosh:update:concourse_deployment  # update the git submodule for concourse-bosh-deployment
-rake bosh:update:ubuntu_stemcell       # upload ubuntu stemcell to the director
-rake db:connect                        # connect to the postgres database
+rake bbl:gcp:init[gcp_project_id]                 # initialize bosh-bootloader for GCP
+rake bbl:gcp:up                                   # terraform your environment and deploy the bosh director
+rake bosh:deploy                                  # deploy concourse
+rake bosh:init                                    # prepare the concourse bosh deployment
+rake bosh:interpolate                             # view interpolated manifest
+rake bosh:update                                  # macro task for all `update` subtasks
+rake bosh:update:concourse_deployment[commitish]  # update the git submodule for concourse-bosh-deployment (default: master)
+rake bosh:update:ubuntu_stemcell                  # upload ubuntu stemcell to the director
+rake db:connect                                   # connect to the postgres database
 ```
 
 See full instructions below.
@@ -90,7 +90,7 @@ Files which contain sensitive data:
 You will see these files listed in `.gitattributes` invoking git-crypt for them.
 
 
-## Deploying to GCP
+## Deploy to GCP
 
 ### Step 0: create a GCP project, and create and config a Postgres database
 
@@ -241,7 +241,7 @@ This will:
 Note that you will need to type in your database password; this is located in `secrets.yml`.
 
 
-## Upgrading `bbl`
+## Upgrade `bbl`
 
 When a new version of bosh-bootloader comes out, just [download it](https://github.com/cloudfoundry/bosh-bootloader/releases) and make sure it's in your path as `bbl` (check by running `bbl -v`) and then:
 
@@ -254,7 +254,7 @@ $ rake bbl:gcp:up
 Make sure to commit into source control all the changes in your project directory (`bbl-state.json`, `vars/`, `bosh-deployment/`, etc.).
 
 
-## Upgrading `concourse-bosh-deployment`
+## Upgrade `concourse-bosh-deployment`
 
 If a new version of concourse comes out, and you'd like to upgrade, first read the [release notes for Concourse](https://concourse-ci.org/download.html) to check for any relevant breaking changes.
 
