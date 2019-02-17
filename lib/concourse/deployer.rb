@@ -12,16 +12,16 @@ module Concourse
     include Rake::DSL
     include Concourse::Deployer::Utils
 
-    GCP_SERVICE_ACCOUNT_FILE  = "service-account.key.json"
-    ENVRC_FILE                = ".envrc"
+    GCP_SERVICE_ACCOUNT_FILE = "service-account.key.json"
+    ENVRC_FILE = ".envrc"
 
-    BBL_STATE_FILE            = "bbl-state.json"
-    BBL_VARS_DIR              = "vars"
+    BBL_STATE_FILE = "bbl-state.json"
+    BBL_VARS_DIR = "vars"
 
-    BOSH_DEPLOYMENT           = "concourse"
-    BOSH_SECRETS              = "secrets.yml"
-    BOSH_VARS_STORE           = "cluster-creds.yml"
-    BOSH_OPERATIONS           = "operations.yml"
+    BOSH_DEPLOYMENT = "concourse"
+    BOSH_SECRETS = "secrets.yml"
+    BOSH_VARS_STORE = "cluster-creds.yml"
+    BOSH_OPERATIONS = "operations.yml"
 
     CONCOURSE_DEPLOYMENT_VARS = "deployment-vars.yml"
 
@@ -35,10 +35,10 @@ module Concourse
       return true unless File.exist?(GCP_SERVICE_ACCOUNT_FILE)
 
       overwrite = prompt "A #{GCP_SERVICE_ACCOUNT_FILE} file already exists. Do you want to overwrite it? (y/n)", "n"
-      return !! (overwrite =~ /^y/i)
+      return !!(overwrite =~ /^y/i)
     end
 
-    def bbl_gcp_init project_id
+    def bbl_gcp_init(project_id)
       bbl_init
       unless_which "gcloud", "https://cloud.google.com/sdk/downloads"
       ensure_in_gitcrypt GCP_SERVICE_ACCOUNT_FILE
@@ -57,7 +57,7 @@ module Concourse
     end
 
     def bbl_gcp_up
-      unless ENV['BBL_GCP_PROJECT_ID']
+      unless ENV["BBL_GCP_PROJECT_ID"]
         error "Environment variable BBL_GCP_PROJECT_ID is not set. Did you run `rake bbl:gcp:init` and `direnv allow`?"
       end
 
@@ -97,7 +97,7 @@ module Concourse
 
         v["postgres_client_cert"] = (v["postgres_client_cert"] || {}).tap do |cert|
           cert["certificate"] ||= prompt_for_file_contents "Path to client-cert.pem"
-          cert["private_key"] ||= prompt_for_file_contents "Path to client-key.pem" 
+          cert["private_key"] ||= prompt_for_file_contents "Path to client-key.pem"
         end
         v["postgres_ca_cert"] = (v["postgres_ca_cert"] || {}).tap do |cert|
           cert["certificate"] ||= prompt_for_file_contents "Path to server-ca.pem"
@@ -155,7 +155,7 @@ module Concourse
     #   bosh_update_release "cloudfoundry-incubator/windows-utilities-release"
     # end
 
-    def bosh_deploy command: "deploy"
+    def bosh_deploy(command: "deploy")
       unless File.exists?(BOSH_SECRETS)
         error "File #{BOSH_SECRETS} does not exist. Please run `rake bosh:init` first."
       end
@@ -167,7 +167,7 @@ module Concourse
       ensure_in_gitcrypt BOSH_SECRETS
       ensure_in_gitcrypt BOSH_VARS_STORE
 
-      external_dns_name = bosh_secrets['external_dns_name']
+      external_dns_name = bosh_secrets["external_dns_name"]
       external_url = "https://#{external_dns_name}"
 
       ops_files = Dir[File.join(File.dirname(__FILE__), "deployer", "operations", "*.yml")]
@@ -212,15 +212,15 @@ module Concourse
       tempfile_key = Tempfile.new
       tempfile_ca = Tempfile.new
       begin
-        tempfile_cert.write bosh_secrets['postgres_client_cert']['certificate']
-        tempfile_key.write bosh_secrets['postgres_client_cert']['private_key']
-        tempfile_ca.write bosh_secrets['postgres_ca_cert']['certificate']
+        tempfile_cert.write bosh_secrets["postgres_client_cert"]["certificate"]
+        tempfile_key.write bosh_secrets["postgres_client_cert"]["private_key"]
+        tempfile_ca.write bosh_secrets["postgres_ca_cert"]["certificate"]
 
         tempfile_cert.close
         tempfile_key.close
         tempfile_ca.close
 
-        command = %Q{psql "sslmode=verify-ca sslrootcert=#{tempfile_ca.path} sslcert=#{tempfile_cert.path} sslkey=#{tempfile_key.path} hostaddr=#{bosh_secrets['postgres_host']} user=#{bosh_secrets['postgres_role']} dbname=atc"}
+        command = %Q{psql "sslmode=verify-ca sslrootcert=#{tempfile_ca.path} sslcert=#{tempfile_cert.path} sslkey=#{tempfile_key.path} hostaddr=#{bosh_secrets["postgres_host"]} user=#{bosh_secrets["postgres_role"]} dbname=atc"}
 
         sh command
       ensure
@@ -272,25 +272,25 @@ module Concourse
             bosh_update_ubuntu_stemcell
           end
 
-#       desc "upload windows stemcell to the director"
-#       task "windows_stemcell" do
-#         bosh_update_windows_stemcell
-#       end
+          #       desc "upload windows stemcell to the director"
+          #       task "windows_stemcell" do
+          #         bosh_update_windows_stemcell
+          #       end
 
-#       desc "upload concourse windows release to the director"
-#       task "concourse_windows_release" do
-#         bosh_update_concourse_windows_release
-#       end
+          #       desc "upload concourse windows release to the director"
+          #       task "concourse_windows_release" do
+          #         bosh_update_concourse_windows_release
+          #       end
 
-#       desc "upload windows-ruby-dev-tools release to the director"
-#       task "windows_ruby_dev_tools" do
-#         bosh_update_windows_ruby_dev_tools
-#       end
+          #       desc "upload windows-ruby-dev-tools release to the director"
+          #       task "windows_ruby_dev_tools" do
+          #         bosh_update_windows_ruby_dev_tools
+          #       end
 
-#       desc "upload windows-utilities release to the director"
-#       task "windows_utilities_release" do
-#         bosh_update_windows_utilities_release
-#       end
+          #       desc "upload windows-utilities release to the director"
+          #       task "windows_utilities_release" do
+          #         bosh_update_windows_utilities_release
+          #       end
         end
 
         desc "deploy concourse"

@@ -1,43 +1,43 @@
-require 'term/ansicolor'
+require "term/ansicolor"
 
 module Concourse
   class Deployer
     module Utils
       include Term::ANSIColor
 
-      GITIGNORE_FILE           = ".gitignore"
-      GITATTRIBUTES_FILE       = ".gitattributes"
+      GITIGNORE_FILE = ".gitignore"
+      GITATTRIBUTES_FILE = ".gitattributes"
 
-      def sh command
+      def sh(command)
         running "(in #{Dir.pwd}) #{command}"
         super command, verbose: false
       end
 
-      def running message
+      def running(message)
         print bold, red, "RUNNING: ", reset, message, "\n"
       end
 
-      def note message
+      def note(message)
         print bold, green, "NOTE: ", reset, message, "\n"
       end
 
-      def important message
+      def important(message)
         print bold, "NOTE: ", message, reset, "\n"
       end
 
-      def error message, continue=false
+      def error(message, continue = false)
         print red, bold, "ERROR: #{message}", reset, "\n"
         exit 1 unless continue
       end
 
-      def ensure_file filename, &block
+      def ensure_file(filename, &block)
         return if File.exist?(filename)
         File.open(filename, "w") do |f|
           block.call f
         end
       end
 
-      def ensure_in_gitignore file_glob
+      def ensure_in_gitignore(file_glob)
         if File.exist?(GITIGNORE_FILE)
           if File.read(GITIGNORE_FILE).split("\n").include?(file_glob)
             note "found '#{file_glob}' already present in #{GITIGNORE_FILE}"
@@ -48,7 +48,7 @@ module Concourse
         File.open(GITIGNORE_FILE, "a") { |f| f.puts file_glob }
       end
 
-      def ensure_in_gitcrypt file_glob
+      def ensure_in_gitcrypt(file_glob)
         crypt_entry = "#{file_glob} filter=git-crypt diff=git-crypt"
         if File.exist?(GITATTRIBUTES_FILE)
           if File.read(GITATTRIBUTES_FILE).split("\n").include?(crypt_entry)
@@ -60,7 +60,7 @@ module Concourse
         File.open(GITATTRIBUTES_FILE, "a") { |f| f.puts crypt_entry }
       end
 
-      def ensure_in_envrc entry_key, entry_value=nil
+      def ensure_in_envrc(entry_key, entry_value = nil)
         entries = if File.exist?(ENVRC_FILE)
                     File.read(ENVRC_FILE).split("\n")
                   else
@@ -108,7 +108,7 @@ module Concourse
         end
       end
 
-      def ensure_git_submodule repo_url, commitish
+      def ensure_git_submodule(repo_url, commitish)
         repo_name = File.basename repo_url
         sh "git submodule add '#{repo_url}'" unless Dir.exists?(repo_name)
         Dir.chdir(repo_name) do
@@ -126,12 +126,12 @@ module Concourse
         end
       end
 
-      def which command
+      def which(command)
         found = `which #{command}`
         return $?.success? ? found : nil
       end
 
-      def unless_which command, whereto
+      def unless_which(command, whereto)
         if which command
           note "found command '#{command}'"
           return
@@ -139,7 +139,7 @@ module Concourse
         error "please install '#{command}' by visiting #{whereto}"
       end
 
-      def prompt query, default=nil
+      def prompt(query, default = nil)
         loop do
           message = query
           message += " [#{default}]" if default
@@ -155,7 +155,7 @@ module Concourse
         end
       end
 
-      def prompt_for_file_contents query
+      def prompt_for_file_contents(query)
         loop do
           path = prompt query
           return File.read(path) if File.exists?(path)
@@ -167,7 +167,7 @@ module Concourse
         `bbl lbs`.split(":").last.strip
       end
 
-      def bosh_secrets &block
+      def bosh_secrets(&block)
         vars = File.exists?(BOSH_SECRETS) ? YAML.load_file(BOSH_SECRETS) : {}
         return vars unless block_given?
 
@@ -176,7 +176,7 @@ module Concourse
         vars
       end
 
-      def bosh_update_stemcell name
+      def bosh_update_stemcell(name)
         doc = Nokogiri::XML(open("https://bosh.io/stemcells/#{name}"))
         url = doc.at_xpath("//a[contains(text(), 'Light Stemcell')]/@href")
         if url.nil?
@@ -185,7 +185,7 @@ module Concourse
         sh "bosh upload-stemcell #{url}"
       end
 
-      def bosh_update_release repo
+      def bosh_update_release(repo)
         doc = Nokogiri::XML(open("https://bosh.io/releases/github.com/#{repo}?all=1"))
         url = doc.at_xpath("//a[contains(text(), 'Release Tarball')]/@href")
         if url.nil?
@@ -197,7 +197,7 @@ module Concourse
         sh "bosh upload-release #{url}"
       end
 
-      def bosh_update_from_git_repo git
+      def bosh_update_from_git_repo(git)
         dirname = File.basename(git)
         Dir.mktmpdir do |dir|
           Dir.chdir dir do
