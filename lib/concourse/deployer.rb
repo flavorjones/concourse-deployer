@@ -129,8 +129,9 @@ module Concourse
       end
     end
 
-    def bosh_update_concourse_deployment
-      update_git_submodule "https://github.com/concourse/concourse-bosh-deployment", "master"
+    def bosh_update_concourse_deployment(branch_or_tag)
+      branch_or_tag ||= "master"
+      ensure_git_submodule "https://github.com/concourse/concourse-bosh-deployment", branch_or_tag
     end
 
     def bosh_update_ubuntu_stemcell
@@ -263,8 +264,8 @@ module Concourse
 
         namespace "update" do
           desc "update the git submodule for concourse-bosh-deployment"
-          task "concourse_deployment" do
-            bosh_update_concourse_deployment
+          task "concourse_deployment", ["branch_or_tag"] do |t, args|
+            bosh_update_concourse_deployment args["branch_or_tag"]
           end
 
           desc "upload ubuntu stemcell to the director"

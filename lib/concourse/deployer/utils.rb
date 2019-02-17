@@ -112,17 +112,8 @@ module Concourse
         repo_name = File.basename repo_url
         sh "git submodule add '#{repo_url}'" unless Dir.exists?(repo_name)
         Dir.chdir(repo_name) do
-          sh "git checkout '#{commitish}'"
-        end
-      end
-
-      def update_git_submodule repo_url, commitish
-        ensure_git_submodule repo_url, commitish
-
-        repo_name = File.basename repo_url
-        Dir.chdir(repo_name) do
           sh "git remote update"
-          sh "git pull --rebase"
+          sh "git checkout '#{commitish}'"
         end
       end
 
