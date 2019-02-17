@@ -1,5 +1,12 @@
 # Changelog for `concourse-deployer`
 
+## v0.3.0 / 2019-02-16
+
+Features:
+
+- Upgrade concourse-bosh-deployment to a specific version.
+
+
 ## v0.2.0 / 2019-02-10
 
 Features:
