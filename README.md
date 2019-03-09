@@ -265,6 +265,12 @@ $ rake bosh:update:concourse_deployment
 $ rake bosh:deploy
 ```
 
+If you want to pin your concourse deployment to a specific version (or branch):
+
+``` sh
+$ rake bosh:update:concourse_deployment[v5.0.0]
+```
+
 Make sure you commit to source control the updated git submodule.
 
 
