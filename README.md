@@ -286,27 +286,9 @@ The gem is available as open source under the terms of the [MIT License](http://
 
 ## TODO
 
-- [ ] update windows stemcell
-- [ ] include windows worker in manifest
-- [ ] deploy windows ruby tools release to the windows vms
-- [x] +      x_frame_options: "SAMEORIGIN"
-- [x] +      container_placement_strategy: random
 - [ ] enable encryption https://concourse.ci/encryption.html
-- [x] allow scaling up/down by locally setting number of VMs (currently hardcoded in gem)
-- [x] start using https://github.com/dpb587/caddy-bosh-release instead of the letsencrypt rake tasks
-
-
-Things to follow up on:
-
-- [x] upgrading! ZOMG
 - [ ] consider swapping secrets-wizarding and rake task for deploy for a shell script that's user-modifiable
 - [ ] bbl feature for suspending/unsuspending the director VM?
 - [ ] stack driver add-on?
 - [ ] metrics? https://concourse-ci.org/metrics.html
 - [ ] credhub for credential management? https://concourse-ci.org/creds.html
-
-
-Things I'm not immediately planning to do but that might be nice:
-
-- [ ] ops file to make the cloud-config come in under default GCP quota
-- [ ] ops files for a few variations on size/cost tradeoffs
