@@ -79,15 +79,6 @@ module Concourse
       ensure_in_envrc "BOSH_DEPLOYMENT", BOSH_DEPLOYMENT
 
       bosh_secrets do |v|
-        v["local_user"] = (v["local_user"] || {}).tap do |local_user|
-          local_user["username"] = "concourse"
-          local_user["password"] ||= if which "apg"
-                                       `apg -n1`.strip
-                                     else
-                                       prompt "Please enter a password"
-                                     end
-        end
-
         v["external_dns_name"] ||= prompt("Please enter a DNS name if you have one", bbl_external_ip)
 
         v["postgres_host"] ||= prompt("External postgres host IP")
@@ -114,6 +105,16 @@ module Concourse
               mt["github_orgs"] ||= []
               mt["github_teams"] ||= []
             end
+          end
+        end
+        if v["main_team"].nil?
+          v["local_user"] = (v["local_user"] || {}).tap do |local_user|
+            local_user["username"] = "concourse"
+            local_user["password"] ||= if which "apg"
+                                         `apg -m32 -n1`.strip
+                                       else
+                                         prompt "Please enter a password"
+                                       end
           end
         end
       end
@@ -181,7 +182,7 @@ module Concourse
         c << "-l ../versions.yml"
         c << "-l ../../#{BOSH_SECRETS}"
         c << "--vars-store ../../#{BOSH_VARS_STORE}"
-        c << "-o operations/basic-auth.yml"
+        c << "-o operations/basic-auth.yml" unless bosh_secrets["main_team"]
         c << "-o operations/web-network-extension.yml"
         c << "-o operations/external-postgres.yml"
         c << "-o operations/external-postgres-tls.yml"
