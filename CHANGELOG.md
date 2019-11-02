@@ -1,5 +1,16 @@
 # Changelog for `concourse-deployer`
 
+## v0.4.0 / 2019-11-02
+
+Features:
+
+- use the limit-active-tasks container placement strategy
+
+Security:
+
+- do not create or use a local user if a main_team is defined; avoid having a username/password account that could be brute-forced
+
+
 ## v0.3.0 / 2019-02-16
 
 Features:
