@@ -126,7 +126,7 @@ module Concourse
                   "web_vm_type" => "default",
                   "worker_vm_type" => "default", # "n1-standard-2"
                   "worker_ephemeral_disk" => "50GB_ephemeral_disk",
-                  "container_placement_strategy" => "limit-active-tasks",
+                  "max-active-tasks-per-worker" => 4, # twice the vCPUs (?)
                 }.to_yaml)
       end
     end
@@ -189,7 +189,7 @@ module Concourse
         c << "-o operations/external-postgres-client-cert.yml"
         c << "-o operations/worker-ephemeral-disk.yml"
         c << "-o operations/x-frame-options-sameorigin.yml"
-        c << "-o operations/container-placement-strategy.yml"
+        c << "-o operations/container-placement-strategy-limit-active-tasks.yml"
         c << "-o operations/scale.yml"
         c << "-o ../../#{BOSH_OPERATIONS}" if File.exists?(BOSH_OPERATIONS)
         c << "-o operations/github-auth.yml" if bosh_secrets["github_client"]
