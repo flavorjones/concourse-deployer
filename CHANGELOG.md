@@ -1,5 +1,12 @@
 # Changelog for `concourse-deployer`
 
+## v0.5.0 / 2020-03-29
+
+Features:
+
+- Concourse v6.0.0 support.
+
+
 ## v0.4.0 / 2019-11-02
 
 Features:
