@@ -111,10 +111,10 @@ module Concourse
           v["local_user"] = (v["local_user"] || {}).tap do |local_user|
             local_user["username"] = "concourse"
             local_user["password"] ||= if which "apg"
-                                         `apg -m32 -n1`.strip
-                                       else
-                                         prompt "Please enter a password"
-                                       end
+                `apg -m32 -n1`.strip
+              else
+                prompt "Please enter a password"
+              end
           end
         end
       end
@@ -194,6 +194,7 @@ module Concourse
         c << "-o ../../#{BOSH_OPERATIONS}" if File.exists?(BOSH_OPERATIONS)
         c << "-o operations/github-auth.yml" if bosh_secrets["github_client"]
         c << "--var network_name=default"
+        c << "--var azs=[z1]"
         c << "--var external_host='#{external_dns_name}'"
         c << "--var external_url='#{external_url}'"
         c << "--var deployment_name=#{BOSH_DEPLOYMENT}"
