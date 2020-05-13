@@ -62,10 +62,10 @@ module Concourse
 
       def ensure_in_envrc(entry_key, entry_value = nil)
         entries = if File.exist?(ENVRC_FILE)
-                    File.read(ENVRC_FILE).split("\n")
-                  else
-                    Array.new
-                  end
+            File.read(ENVRC_FILE).split("\n")
+          else
+            Array.new
+          end
 
         if entry_value
           #
@@ -168,7 +168,7 @@ module Concourse
       end
 
       def bosh_update_stemcell(name)
-        doc = Nokogiri::XML(open("https://bosh.io/stemcells/#{name}"))
+        doc = Nokogiri::XML(URI.open("https://bosh.io/stemcells/#{name}"))
         url = doc.at_xpath("//a[contains(text(), 'Light Stemcell')]/@href")
         if url.nil?
           error "Could not find the latest stemcell `#{name}`"
@@ -177,7 +177,7 @@ module Concourse
       end
 
       def bosh_update_release(repo)
-        doc = Nokogiri::XML(open("https://bosh.io/releases/github.com/#{repo}?all=1"))
+        doc = Nokogiri::XML(URI.open("https://bosh.io/releases/github.com/#{repo}?all=1"))
         url = doc.at_xpath("//a[contains(text(), 'Release Tarball')]/@href")
         if url.nil?
           error "Could not find the latest release `#{repo}`"
